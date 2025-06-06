@@ -2,21 +2,10 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    
-    <!-- ▼▼▼ iPhone対応のための追加・修正箇所 ▼▼▼ -->
-
-    <!-- [1] レスポンシブデザインの基本設定 (既存のものをそのまま使用) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- [2] ホーム画面に追加した際の挙動を設定 -->
-    <!-- フルスクリーンモードを有効にする -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <!-- ステータスバーのスタイルを黒にする -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <!-- ホーム画面用のアイコンを指定 (※別途180x180px程度の画像を用意してください) -->
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-
-    <!-- ▲▲▲ ここまでが追加・修正箇所 ▲▲▲ -->
 
     <title>YouTubeチャプター作成アプリ</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -24,23 +13,12 @@
         body {
             font-family: 'Inter', sans-serif;
             margin: 0;
-            /* ホーム画面アプリとして使う際に、画面端のスクロールを無効化 */
             overscroll-behavior: none; 
         }
-        textarea::-webkit-scrollbar {
-            width: 8px;
-        }
-        textarea::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        textarea::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
-        }
-        textarea::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
+        textarea::-webkit-scrollbar { width: 8px; }
+        textarea::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        textarea::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        textarea::-webkit-scrollbar-thumb:hover { background: #555; }
         .event-button-input {
             @apply w-full p-2 border border-indigo-500 rounded-lg text-sm text-center;
             background-color: white;
@@ -54,17 +32,14 @@
     <div class="container mx-auto p-4 max-w-6xl">
         <header class="mb-6 text-center">
             <h1 class="text-3xl font-bold text-blue-600">YouTubeチャプター作成</h1>
-            <p class="text-gray-600">イベントボタンを押してチャプターを記録します。停止中にイベントボタンをダブルクリックで編集できます。</p>
+            <p class="text-gray-600">イベントボタンを押してチャプターを記録します。</p>
         </header>
 
-        <!-- ファイル選択用の非表示インプット要素 -->
         <input type="file" id="fileInput" class="hidden" accept=".json">
 
         <div class="flex flex-col md:flex-row gap-6">
-            <div class="w-full md:w-2/5 lg:w-1/2 p-6 bg-white rounded-xl shadow-lg">
-                <div id="currentTimeDisplay" class="text-4xl font-mono font-bold text-center mb-6 text-gray-700">
-                    00:00
-                </div>
+            <div id="controlPanel" class="w-full md:w-2/5 lg:w-1/2 p-6 bg-white rounded-xl shadow-lg">
+                <div id="currentTimeDisplay" class="text-4xl font-mono font-bold text-center mb-6 text-gray-700">00:00</div>
 
                 <div class="space-y-3">
                     <button id="btnKickoff" class="w-full py-3 px-4 rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 bg-green-500 hover:bg-green-600 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">
@@ -72,17 +47,8 @@
                         キックオフ
                     </button>
                     
-                    <!-- [修正] スマートフォンでは2列、少し広い画面で3列になるように変更 -->
                     <div id="eventButtonContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-2"> 
-                        <button data-eventname="ボタン1" data-id="evt_btn_1" class="event-btn w-full py-3 px-2 text-sm rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">ボタン1</button>
-                        <button data-eventname="ボタン2" data-id="evt_btn_2" class="event-btn w-full py-3 px-2 text-sm rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">ボタン2</button>
-                        <button data-eventname="ボタン3" data-id="evt_btn_3" class="event-btn w-full py-3 px-2 text-sm rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">ボタン3</button>
-                        <button data-eventname="ボタン4" data-id="evt_btn_4" class="event-btn w-full py-3 px-2 text-sm rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">ボタン4</button>
-                        <button data-eventname="ボタン5" data-id="evt_btn_5" class="event-btn w-full py-3 px-2 text-sm rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">ボタン5</button>
-                        <button data-eventname="ボタン6" data-id="evt_btn_6" class="event-btn w-full py-3 px-2 text-sm rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">ボタン6</button>
-                        <button data-eventname="ボタン7" data-id="evt_btn_7" class="event-btn w-full py-3 px-2 text-sm rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">ボタン7</button>
-                        <button data-eventname="ボタン8" data-id="evt_btn_8" class="event-btn w-full py-3 px-2 text-sm rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">ボタン8</button>
-                        <button data-eventname="ボタン9" data-id="evt_btn_9" class="event-btn w-full py-3 px-2 text-sm rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">ボタン9</button>
+                        <!-- イベントボタンはJSによって動的に生成されます -->
                     </div>
 
                     <button id="btnTimeUp" class="w-full py-3 px-4 rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 bg-red-500 hover:bg-red-600 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">
@@ -91,30 +57,28 @@
                     </button>
 
                     <div class="mt-4 pt-4 border-t border-gray-200 space-y-2">
-                        <h4 class="text-xs text-center text-gray-500 mb-1">イベントボタン名設定</h4>
+                        <h4 class="text-xs text-center text-gray-500 mb-1">イベントボタン管理</h4>
                         <div class="flex gap-2">
-                            <button id="btnSaveNames" class="flex-1 py-2 px-4 rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 bg-slate-500 hover:bg-slate-600 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">保存</button>
-                            <button id="btnLoadNames" class="flex-1 py-2 px-4 rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 bg-slate-500 hover:bg-slate-600 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">読込</button>
+                            <button id="btnAddButton" class="flex-1 py-2 px-4 rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-300 disabled:cursor-not-allowed">追加</button>
+                            <button id="btnToggleDeleteMode" class="flex-1 py-2 px-4 rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 bg-red-500 hover:bg-red-600 text-white disabled:bg-gray-300 disabled:cursor-not-allowed">削除モード</button>
                         </div>
+                        <!-- ▼▼▼ 変更箇所 ▼▼▼ -->
+                        <div class="flex gap-2">
+                            <button id="btnSaveLocal" class="flex-1 py-2 px-4 rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 bg-slate-500 hover:bg-slate-600 text-white disabled:bg-gray-300 disabled:cursor-not-allowed">保存</button>
+                            <button id="btnExportFile" class="flex-1 py-2 px-4 rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 bg-slate-500 hover:bg-slate-600 text-white disabled:bg-gray-300 disabled:cursor-not-allowed">書出</button>
+                            <button id="btnLoadFile" class="flex-1 py-2 px-4 rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 bg-slate-500 hover:bg-slate-600 text-white disabled:bg-gray-300 disabled:cursor-not-allowed">読込</button>
+                        </div>
+                        <!-- ▲▲▲ 変更箇所 ▲▲▲ -->
                     </div>
                 </div>
             </div>
 
             <div class="w-full md:w-3/5 lg:w-1/2 p-6 bg-white rounded-xl shadow-lg">
                 <h2 class="text-xl font-semibold mb-3 text-gray-700">チャプター記録</h2>
-                <!-- [修正] スマートフォンでの高さを調整 -->
                 <textarea id="chapterLog" class="w-full h-64 sm:h-80 md:h-96 p-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm font-mono" placeholder="ここにチャプターが表示されます..."></textarea>
                 <div class="mt-4 flex flex-col sm:flex-row gap-2">
-                    <button id="btnDownloadTxt" class="flex-1 py-2 px-6 font-semibold rounded-lg shadow-md transition-transform transform hover:scale-105 bg-sky-500 hover:bg-sky-600 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                        </svg>
-                        TXT形式で出力
-                    </button>
-                    <button id="btnReset" class="flex-1 py-2 px-6 font-semibold rounded-lg shadow-md transition-transform transform hover:scale-105 bg-yellow-500 hover:bg-yellow-600 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101A7.002 7.002 0 0110 3c3.866 0 7 3.134 7 7s-3.134 7-7 7a7.002 7.002 0 01-5.652-2.899A1 1 0 115.65 13.1c.843.982 1.99 1.601 3.35 1.815V17a1 1 0 11-2 0v-2.101A7.002 7.002 0 013 10c0-3.866 3.134-7 7-7 .048 0 .095.002.142.005A1 1 0 0110.956 2H10a1 1 0 01-1-1V0a1 1 0 011-1h4.586a1 1 0 01.707.293l2 2a1 1 0 010 1.414l-2 2A1 1 0 0114.586 5H11.3A5.002 5.002 0 0010 5c-2.757 0-5 2.243-5 5s2.243 5 5 5a5.002 5.002 0 003.888-1.854A1 1 0 1115.111 14C13.888 15.207 12.03 16 10 16c-3.309 0-6-2.691-6-6s2.691-6 6-6c.032 0 .063.001.094.003V2a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
-                        リセット
-                    </button>
+                    <button id="btnDownloadTxt" class="flex-1 py-2 px-6 font-semibold rounded-lg shadow-md transition-transform transform hover:scale-105 bg-sky-500 hover:bg-sky-600 text-white disabled:bg-gray-300 disabled:cursor-not-allowed">TXT形式で出力</button>
+                    <button id="btnReset" class="flex-1 py-2 px-6 font-semibold rounded-lg shadow-md transition-transform transform hover:scale-105 bg-yellow-500 hover:bg-yellow-600 text-white disabled:bg-gray-300 disabled:cursor-not-allowed">リセット</button>
                 </div>
                 <div id="actionMessage" class="mt-2 text-sm h-4"></div>
             </div>
@@ -122,307 +86,265 @@
     </div>
 
     <script>
-        // JavaScript部分は変更ありません
-        const kickoffButton = document.getElementById('btnKickoff');
-        const eventButtonContainer = document.getElementById('eventButtonContainer');
-        const timeUpButton = document.getElementById('btnTimeUp');
-        const chapterLogTextarea = document.getElementById('chapterLog');
-        const currentTimeDisplay = document.getElementById('currentTimeDisplay');
-        const downloadTxtButton = document.getElementById('btnDownloadTxt');
-        const resetButton = document.getElementById('btnReset'); 
-        const actionMessageDiv = document.getElementById('actionMessage');
-        const saveNamesButton = document.getElementById('btnSaveNames');
-        const loadNamesButton = document.getElementById('btnLoadNames');
-        const fileInput = document.getElementById('fileInput');
-
-        let timerInterval = null;
-        let elapsedSeconds = 0;
-        let gameInProgress = false;
-        let currentlyEditingInput = null;
-        let originalButtonForEdit = null; 
-
         document.addEventListener('DOMContentLoaded', () => {
-            initializeEventButtonListeners(); 
-            initializeOtherButtonListeners();
-            updateButtonStates();
-        });
+            // --- DOM要素の取得 ---
+            // ▼▼▼ 変更箇所 ▼▼▼
+            const elements = {
+                kickoffButton: document.getElementById('btnKickoff'),
+                eventButtonContainer: document.getElementById('eventButtonContainer'),
+                timeUpButton: document.getElementById('btnTimeUp'),
+                chapterLogTextarea: document.getElementById('chapterLog'),
+                currentTimeDisplay: document.getElementById('currentTimeDisplay'),
+                downloadTxtButton: document.getElementById('btnDownloadTxt'),
+                resetButton: document.getElementById('btnReset'),
+                actionMessageDiv: document.getElementById('actionMessage'),
+                saveLocalButton: document.getElementById('btnSaveLocal'), // 変更
+                exportFileButton: document.getElementById('btnExportFile'), // 追加
+                loadFileButton: document.getElementById('btnLoadFile'),     // 変更
+                fileInput: document.getElementById('fileInput'),
+                addButton: document.getElementById('btnAddButton'),
+                toggleDeleteModeButton: document.getElementById('btnToggleDeleteMode'),
+                controlPanel: document.getElementById('controlPanel'),
+            };
+            // ▲▲▲ 変更箇所 ▲▲▲
 
-        function initializeEventButtonListeners() {
-            const buttons = eventButtonContainer.querySelectorAll('.event-btn');
-            buttons.forEach((button) => {
-                button.addEventListener('click', () => {
-                    if (currentlyEditingInput) return; 
-                    if (gameInProgress) { 
-                        const eventName = button.dataset.eventname;
-                        addLogEntry(eventName);
-                        actionMessageDiv.textContent = '';
-                    }
-                });
+            // --- アプリケーションの状態管理 ---
+            const state = {
+                timerInterval: null,
+                elapsedSeconds: 0,
+                gameInProgress: false,
+                currentlyEditingInput: null,
+                originalButtonForEdit: null,
+                deleteMode: false,
+                localStorageKey: 'youtubeChapterButtonNames', // ローカルストレージ用のキー
+            };
 
-                button.addEventListener('dblclick', () => {
-                    if (gameInProgress) {
-                        showActionMessage('タイマー実行中は編集できません。', 'error');
-                        return; 
-                    }
-                    if (currentlyEditingInput) { 
-                        return;
-                    }
-                    
-                    originalButtonForEdit = button; 
-                    const currentEventName = button.dataset.eventname;
-                    button.style.display = 'none';
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.value = currentEventName;
-                    input.classList.add('event-button-input');
-                    currentlyEditingInput = input; 
-                    button.parentElement.insertBefore(input, button.nextSibling);
-                    input.focus(); 
-                    input.select();
-
-                    const finishEditingHandler = (e) => {
-                         if (e.key === 'Enter' || e.type === 'blur') {
-                             finishEditing(input.value);
-                         } else if (e.key === 'Escape') {
-                             cancelEditing();
-                         }
-                    };
-                    
-                    const handleKeyDown = (e) => {
-                          if (e.key === 'Enter' || e.key === 'Escape') {
-                              input.blur();
-                          }
-                    };
-                    
-                    input.addEventListener('blur', () => {
-                        finishEditing(input.value);
-                        if (input.parentElement) {
-                            input.remove();
-                        }
-                    }, { once: true });
-                    input.addEventListener('keydown', handleKeyDown);
-                });
-            });
-        }
-        
-        function finishEditing(newNameValue) {
-            const button = originalButtonForEdit;
-            if (!button) return;
-
-            const trimmedNewName = newNameValue.trim();
-            if (trimmedNewName) {
-                button.textContent = trimmedNewName;
-                button.dataset.eventname = trimmedNewName;
-                showActionMessage(`ボタン名を「${trimmedNewName}」に変更しました。`, 'success');
-            } else {
-                showActionMessage("ボタン名は空にできません。元の名前に戻します。", "error");
-            }
-            
-            button.style.display = '';
-            currentlyEditingInput = null; 
-            originalButtonForEdit = null;
-            updateButtonStates(); 
-        }
-
-        function cancelEditing() {
-            const button = originalButtonForEdit;
-            if (!button) return;
-            button.style.display = '';
-            showActionMessage('編集をキャンセルしました。', 'info');
-            currentlyEditingInput = null;
-            originalButtonForEdit = null;
-            updateButtonStates(); 
-        }
-        
-        function initializeOtherButtonListeners() {
-            kickoffButton.addEventListener('click', handleKickoff);
-            timeUpButton.addEventListener('click', handleTimeUp);
-            downloadTxtButton.addEventListener('click', handleDownload);
-            resetButton.addEventListener('click', handleReset);
-            
-            saveNamesButton.addEventListener('click', saveButtonNamesToFile);
-            
-            loadNamesButton.addEventListener('click', () => {
-                if (gameInProgress || currentlyEditingInput) return;
-                fileInput.click();
-            });
-
-            fileInput.addEventListener('change', loadButtonNamesFromFile);
-        }
-
-        function updateButtonStates() { /* ... (変更なし) ... */ }
-        
-        function saveButtonNamesToFile() {
-            if (gameInProgress || currentlyEditingInput) return;
-
-            const buttonNames = Array.from(eventButtonContainer.querySelectorAll('.event-btn'))
-                                     .map(button => ({ id: button.dataset.id, name: button.dataset.eventname }));
-            
-            const jsonString = JSON.stringify(buttonNames, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'youtube-chapter-buttons.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showActionMessage('ボタン名のファイルを保存しました。', 'success');
-        }
-
-        function loadButtonNamesFromFile(event) {
-            const file = event.target.files[0];
-            if (!file) {
-                return;
+            // --- 初期化処理 ---
+            function initialize() {
+                setupEventListeners();
+                loadButtonsFromStorageOrDefault();
+                updateButtonStates();
             }
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
+            // --- イベントリスナーの設定 ---
+            // ▼▼▼ 変更箇所 ▼▼▼
+            function setupEventListeners() {
+                elements.kickoffButton.addEventListener('click', handleKickoff);
+                elements.timeUpButton.addEventListener('click', handleTimeUp);
+                elements.downloadTxtButton.addEventListener('click', handleDownload);
+                elements.resetButton.addEventListener('click', handleReset);
+                elements.saveLocalButton.addEventListener('click', saveToLocalStorage);  // 変更
+                elements.exportFileButton.addEventListener('click', exportToFile);        // 追加
+                elements.loadFileButton.addEventListener('click', () => elements.fileInput.click()); // 変更
+                elements.fileInput.addEventListener('change', loadButtonNamesFromFile);
+                elements.addButton.addEventListener('click', addNewEventButton);
+                elements.toggleDeleteModeButton.addEventListener('click', toggleDeleteMode);
+                elements.eventButtonContainer.addEventListener('click', handleEventButtonClick);
+                elements.eventButtonContainer.addEventListener('dblclick', handleEventButtonDblClick);
+            }
+            // ▲▲▲ 変更箇所 ▲▲▲
+            
+            // --- ボタンの動的生成と管理 ---
+            function createEventButton(id, name) {
+                const button = document.createElement('button');
+                button.dataset.eventname = name;
+                button.dataset.id = id;
+                button.textContent = name;
+                button.className = 'event-btn w-full py-3 px-2 text-sm rounded-lg font-semibold shadow-md transition-transform transform hover:scale-105 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none';
+                return button;
+            }
+
+            function loadButtonsFromStorageOrDefault() {
+                let buttonsData = null;
                 try {
-                    const content = e.target.result;
-                    const savedNames = JSON.parse(content);
-
-                    if (!Array.isArray(savedNames)) {
-                        throw new Error("無効なファイル形式です。");
+                    const savedData = localStorage.getItem(state.localStorageKey);
+                    if (savedData) {
+                        buttonsData = JSON.parse(savedData);
                     }
-
-                    eventButtonContainer.querySelectorAll('.event-btn').forEach(button => {
-                        const savedData = savedNames.find(item => item.id === button.dataset.id);
-                        if (savedData && savedData.name) {
-                            button.textContent = savedData.name;
-                            button.dataset.eventname = savedData.name;
-                        }
-                    });
-                    showActionMessage('ファイルからボタン名を読み込みました。', 'success');
-                } catch (error) {
-                    console.error('ファイルの読み込みまたは解析中にエラー:', error);
-                    showActionMessage('ファイルの読み込みに失敗しました。無効なJSONファイルです。', 'error');
+                } catch (e) {
+                    console.error("ローカルストレージからの読み込みに失敗:", e);
+                    buttonsData = null;
                 }
-            };
+
+                if (!buttonsData || !Array.isArray(buttonsData) || buttonsData.length === 0) {
+                    buttonsData = [
+                        { id: 'evt_btn_1', name: 'ボタン1' }, { id: 'evt_btn_2', name: 'ボタン2' },
+                        { id: 'evt_btn_3', name: 'ボタン3' }, { id: 'evt_btn_4', name: 'ボタン4' },
+                        { id: 'evt_btn_5', name: 'ボタン5' }, { id: 'evt_btn_6', name: 'ボタン6' },
+                    ];
+                }
+                rebuildButtons(buttonsData);
+            }
+
+            function rebuildButtons(buttonsData) {
+                elements.eventButtonContainer.innerHTML = '';
+                buttonsData.forEach(btnData => {
+                    const button = createEventButton(btnData.id, btnData.name);
+                    elements.eventButtonContainer.appendChild(button);
+                });
+                updateButtonStates();
+            }
+
+            function addNewEventButton() {
+                if (state.gameInProgress || state.currentlyEditingInput) return;
+                const newId = `evt_btn_${Date.now()}`;
+                const buttonCount = elements.eventButtonContainer.children.length + 1;
+                const newName = `ボタン${buttonCount}`;
+                const newButton = createEventButton(newId, newName);
+                elements.eventButtonContainer.appendChild(newButton);
+                updateButtonStates();
+                showActionMessage('新しいボタンを追加しました。', 'success');
+            }
             
-            reader.onerror = () => {
-                console.error('ファイルの読み込みエラー');
-                showActionMessage('ファイルの読み込み中にエラーが発生しました。', 'error');
-            };
+            function toggleDeleteMode() {
+                if (state.gameInProgress || state.currentlyEditingInput) return;
+                state.deleteMode = !state.deleteMode;
+                elements.toggleDeleteModeButton.textContent = state.deleteMode ? '削除モード解除' : '削除モード';
+                elements.toggleDeleteModeButton.classList.toggle('bg-red-500', !state.deleteMode);
+                elements.toggleDeleteModeButton.classList.toggle('hover:bg-red-600', !state.deleteMode);
+                elements.toggleDeleteModeButton.classList.toggle('bg-green-500', state.deleteMode);
+                elements.toggleDeleteModeButton.classList.toggle('hover:bg-green-600', state.deleteMode);
+                showActionMessage(state.deleteMode ? '削除モードON：ボタンをクリックで削除' : '削除モードOFF', 'info');
+                updateButtonStates();
+            }
 
-            reader.readAsText(file);
+            // --- イベントハンドラ (変更なし) ---
+            function handleEventButtonClick(e) { /* ... */ }
+            function handleEventButtonDblClick(e) { /* ... */ }
+            function startEditing(button) { /* ... */ }
+            function finishEditing(newName) { /* ... */ }
+            function cancelEditing() { /* ... */ }
+            function handleKickoff() { /* ... */ }
+            function handleTimeUp() { /* ... */ }
+            function handleDownload() { /* ... */ }
+            function handleReset() { /* ... */ }
             
-            event.target.value = null;
-        }
+            // --- ファイル/ストレージ操作 ---
+            // ▼▼▼ 変更箇所 ▼▼▼
+            function getButtonsData() {
+                return Array.from(elements.eventButtonContainer.children).map(btn => ({
+                    id: btn.dataset.id,
+                    name: btn.dataset.eventname,
+                }));
+            }
 
-        function updateButtonStates() {
-            const isEditing = currentlyEditingInput !== null;
-            const isGameActive = gameInProgress && !isEditing;
+            function saveToLocalStorage() {
+                if (state.gameInProgress || state.currentlyEditingInput) return;
+                const buttonsData = getButtonsData();
+                const jsonString = JSON.stringify(buttonsData, null, 2);
+                try {
+                    localStorage.setItem(state.localStorageKey, jsonString);
+                    showActionMessage('現在のボタン構成をブラウザに保存しました。', 'success');
+                } catch (e) {
+                    console.error("ローカルストレージへの保存に失敗:", e);
+                    showActionMessage('ブラウザへの保存に失敗しました。', 'error');
+                }
+            }
 
-            kickoffButton.disabled = gameInProgress || isEditing;
-            timeUpButton.disabled = !gameInProgress || isEditing;
-            
-            const otherActionButtons = [saveNamesButton, loadNamesButton, downloadTxtButton, resetButton];
-            otherActionButtons.forEach(btn => btn.disabled = gameInProgress || isEditing);
+            function exportToFile() {
+                if (state.gameInProgress || state.currentlyEditingInput) return;
+                const buttonsData = getButtonsData();
+                const jsonString = JSON.stringify(buttonsData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'youtube-chapter-buttons.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                showActionMessage('ボタン構成をファイルに出力しました。', 'success');
+            }
 
-            const eventButtons = eventButtonContainer.querySelectorAll('.event-btn');
-            eventButtons.forEach(btn => {
-                btn.disabled = isEditing || btn.style.display === 'none';
-                btn.classList.remove('bg-indigo-500', 'hover:bg-indigo-600', 'bg-gray-400', 'hover:bg-gray-500');
-
-                if (isGameActive) {
-                    btn.classList.add('bg-indigo-500', 'hover:bg-indigo-600');
-                    btn.title = "";
-                } else {
-                    btn.classList.add('bg-gray-400', 'hover:bg-gray-500');
-                     if (isEditing) {
-                         btn.title = "編集中...";
-                    } else {
-                         btn.title = "ダブルクリックで編集";
+            function loadButtonNamesFromFile(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = e => {
+                    try {
+                        const savedNames = JSON.parse(e.target.result);
+                        if (!Array.isArray(savedNames)) throw new Error("無効なファイル形式です。");
+                        rebuildButtons(savedNames);
+                        showActionMessage('ファイルからボタン名を読み込みました。', 'success');
+                    } catch (error) {
+                        showActionMessage('ファイルの読み込みに失敗しました。', 'error');
+                        console.error(error);
                     }
-                }
-            });
-        }
-        
-        function handleKickoff() {
-            if (currentlyEditingInput) cancelEditing(); 
-            if (gameInProgress) return;
-            gameInProgress = true;
-            elapsedSeconds = 0;
-            chapterLogTextarea.value = `00:00 キックオフ\n`; 
-            currentTimeDisplay.textContent = '00:00';
-            chapterLogTextarea.scrollTop = chapterLogTextarea.scrollHeight;
-            clearInterval(timerInterval); 
-            timerInterval = setInterval(() => {
-                elapsedSeconds++;
-                currentTimeDisplay.textContent = formatTime(elapsedSeconds);
-            }, 1000);
-            updateButtonStates();
-            actionMessageDiv.textContent = ''; 
-        }
-
-        function handleTimeUp() {
-            if (currentlyEditingInput) cancelEditing(); 
-            if (!gameInProgress) return;
-            addLogEntry('タイムアップ');
-            clearInterval(timerInterval);
-            gameInProgress = false;
-            updateButtonStates();
-            actionMessageDiv.textContent = '';
-        }
-        
-        function formatTime(totalSeconds) {
-            const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-            return `${minutes}:${seconds}`;
-        }
-        
-        function addLogEntry(eventName) {
-            const timestamp = formatTime(elapsedSeconds);
-            chapterLogTextarea.value += `${timestamp} ${eventName}\n`; 
-            chapterLogTextarea.scrollTop = chapterLogTextarea.scrollHeight; 
-        }
-        
-        function showActionMessage(message, type = 'success') {
-            actionMessageDiv.textContent = message;
-            actionMessageDiv.className = 'mt-2 text-sm h-4'; 
-            if (type === 'success') {
-                actionMessageDiv.classList.add('text-green-600');
-            } else if (type === 'error') {
-                actionMessageDiv.classList.add('text-red-600');
-            } else { 
-                actionMessageDiv.classList.add('text-blue-600');
+                };
+                reader.readAsText(file);
+                event.target.value = null;
             }
-            setTimeout(() => { actionMessageDiv.textContent = ''; }, 3000);
-        }
+            // ▲▲▲ 変更箇所 ▲▲▲
 
-        function handleDownload() { 
-            if (gameInProgress) return;
-            const textToSave = chapterLogTextarea.value; 
-            if (textToSave.trim() === "") { 
-                showActionMessage('ダウンロードする内容がありません。', 'error');
-                return;
+            // --- UI更新 ---
+            // ▼▼▼ 変更箇所 ▼▼▼
+            function updateButtonStates() {
+                const isEditing = state.currentlyEditingInput !== null;
+                const isDeleting = state.deleteMode;
+                const isGameActive = state.gameInProgress;
+
+                // --- メイン操作ボタン ---
+                elements.kickoffButton.disabled = isGameActive || isEditing || isDeleting;
+                elements.timeUpButton.disabled = !isGameActive;
+
+                // --- 管理ボタン ---
+                const isManagementBusy = isGameActive || isEditing;
+                elements.addButton.disabled = isManagementBusy || isDeleting;
+                elements.saveLocalButton.disabled = isManagementBusy || isDeleting;
+                elements.exportFileButton.disabled = isManagementBusy || isDeleting;
+                elements.loadFileButton.disabled = isManagementBusy || isDeleting;
+                elements.downloadTxtButton.disabled = isGameActive;
+                elements.resetButton.disabled = isGameActive;
+                elements.toggleDeleteModeButton.disabled = isGameActive || isEditing;
+
+                // --- イベントボタンのスタイル定義 ---
+                const idleClasses = ['bg-gray-400', 'hover:bg-gray-500'];
+                const activeClasses = ['bg-indigo-500', 'hover:bg-indigo-600'];
+                const deleteClasses = ['bg-red-500', 'hover:bg-red-700', 'ring-2', 'ring-offset-2', 'ring-red-500'];
+
+                elements.eventButtonContainer.querySelectorAll('.event-btn').forEach(btn => {
+                    btn.classList.remove(...idleClasses, ...activeClasses, ...deleteClasses);
+                    if (isDeleting) {
+                        btn.disabled = false;
+                        btn.title = "クリックして削除";
+                        btn.classList.add(...deleteClasses);
+                    } else if (isGameActive) {
+                        btn.disabled = false;
+                        btn.title = "クリックで記録";
+                        btn.classList.add(...activeClasses);
+                    } else if (isEditing) {
+                        btn.disabled = true;
+                        btn.title = "編集中...";
+                        btn.classList.add(...idleClasses);
+                    } else { // アイドル時
+                        btn.disabled = false;
+                        btn.title = "ダブルクリックで編集";
+                        btn.classList.add(...idleClasses);
+                    }
+                });
             }
-            const blob = new Blob([textToSave], { type: 'text/plain;charset=utf-8' }); 
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'chapters.txt'; 
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showActionMessage('TXTファイルをダウンロードしました。', 'success');
-        }
+            // ▲▲▲ 変更箇所 ▲▲▲
 
-        function handleReset() {
-            if (currentlyEditingInput) cancelEditing(); 
-            clearInterval(timerInterval); 
-            timerInterval = null;
-            elapsedSeconds = 0;
-            gameInProgress = false; 
-            chapterLogTextarea.value = ''; 
-            currentTimeDisplay.textContent = '00:00'; 
-            updateButtonStates(); 
-            actionMessageDiv.textContent = ''; 
-            showActionMessage('記録をリセットしました。', 'info');
-        }
+            // --- ユーティリティ関数 ---
+            function formatTime(totalSeconds) { /* ... */ }
+            function addLogEntry(eventName) { /* ... */ }
+            function showActionMessage(message, type = 'success') { /* ... */ }
+
+            // --- 残りの関数 (折りたたみ) ---
+            handleEventButtonClick = (e) => { const button = e.target.closest('.event-btn'); if (!button || button.disabled) return; if (state.deleteMode) { button.remove(); showActionMessage('ボタンを削除しました。', 'success'); return; } if (state.gameInProgress) { addLogEntry(button.dataset.eventname); } };
+            handleEventButtonDblClick = (e) => { const button = e.target.closest('.event-btn'); if (!button || button.disabled || state.gameInProgress || state.currentlyEditingInput || state.deleteMode) return; startEditing(button); };
+            startEditing = (button) => { state.originalButtonForEdit = button; button.style.display = 'none'; const input = document.createElement('input'); input.type = 'text'; input.value = button.dataset.eventname; input.className = 'event-button-input'; state.currentlyEditingInput = input; button.parentElement.insertBefore(input, button); input.focus(); input.select(); const onFinish = () => finishEditing(input.value); input.addEventListener('blur', onFinish, { once: true }); input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.removeEventListener('blur', onFinish); cancelEditing(); } }); updateButtonStates(); };
+            finishEditing = (newName) => { const button = state.originalButtonForEdit; if (!button || !state.currentlyEditingInput) return; const input = state.currentlyEditingInput; if (input.parentElement) input.remove(); const trimmedName = newName.trim(); if (trimmedName) { button.textContent = trimmedName; button.dataset.eventname = trimmedName; showActionMessage(`ボタン名を「${trimmedName}」に変更しました。`, 'success'); } else { showActionMessage("ボタン名は空にできません。", "error"); } button.style.display = ''; state.currentlyEditingInput = null; state.originalButtonForEdit = null; updateButtonStates(); };
+            cancelEditing = () => { const button = state.originalButtonForEdit; if (!button || !state.currentlyEditingInput) return; const input = state.currentlyEditingInput; if (input.parentElement) input.remove(); button.style.display = ''; showActionMessage('編集をキャンセルしました。', 'info'); state.currentlyEditingInput = null; state.originalButtonForEdit = null; updateButtonStates(); };
+            handleKickoff = () => { if (state.deleteMode) toggleDeleteMode(); if (state.currentlyEditingInput) cancelEditing(); if (state.gameInProgress) return; state.gameInProgress = true; state.elapsedSeconds = 0; elements.chapterLogTextarea.value = `00:00 キックオフ\n`; elements.currentTimeDisplay.textContent = '00:00'; clearInterval(state.timerInterval); state.timerInterval = setInterval(() => { state.elapsedSeconds++; elements.currentTimeDisplay.textContent = formatTime(state.elapsedSeconds); }, 1000); updateButtonStates(); };
+            handleTimeUp = () => { if (state.currentlyEditingInput) cancelEditing(); if (!state.gameInProgress) return; addLogEntry('タイムアップ'); clearInterval(state.timerInterval); state.gameInProgress = false; updateButtonStates(); };
+            handleDownload = () => { if (state.gameInProgress) return; const text = elements.chapterLogTextarea.value; if (!text.trim()) { showActionMessage('ダウンロードする内容がありません。', 'error'); return; } const blob = new Blob([text], { type: 'text/plain;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'chapters.txt'; a.click(); URL.revokeObjectURL(url); showActionMessage('TXTファイルをダウンロードしました。', 'success'); };
+            handleReset = () => { if (state.deleteMode) toggleDeleteMode(); if (state.currentlyEditingInput) cancelEditing(); clearInterval(state.timerInterval); Object.assign(state, { timerInterval: null, elapsedSeconds: 0, gameInProgress: false }); elements.chapterLogTextarea.value = ''; elements.currentTimeDisplay.textContent = '00:00'; updateButtonStates(); showActionMessage('記録をリセットしました。', 'info'); };
+            formatTime = (totalSeconds) => { const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0'); const seconds = (totalSeconds % 60).toString().padStart(2, '0'); return `${minutes}:${seconds}`; };
+            addLogEntry = (eventName) => { const timestamp = formatTime(state.elapsedSeconds); elements.chapterLogTextarea.value += `${timestamp} ${eventName}\n`; elements.chapterLogTextarea.scrollTop = elements.chapterLogTextarea.scrollHeight; };
+            showActionMessage = (message, type = 'success') => { elements.actionMessageDiv.textContent = message; elements.actionMessageDiv.className = 'mt-2 text-sm h-4 text-center transition-opacity duration-300'; const colors = { success: 'text-green-600', error: 'text-red-600', info: 'text-blue-600' }; elements.actionMessageDiv.classList.add(colors[type] || 'text-gray-600'); setTimeout(() => { elements.actionMessageDiv.textContent = ''; }, 3000); };
+
+            initialize();
+        });
     </script>
 </body>
 </html>
