@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">教育課程表</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px auto; 
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: calc(130px + 10px + (30px * 35) + 20px); 
+            min-width: fit-content; 
+        }
+
+        .controls-section, .add-card-section, .tier-management-section {
+            padding: 5px 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1#mainTitle { 
+            cursor: text;
+            padding: 5px;
+            border-radius: 3px; 
+        }
+        h1#mainTitle:focus {
+            outline: 2px solid #4CAF50;
+            background-color: #e9e9e9;
+        }
+
+
+        h3 {
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+
+
+        .tier-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .tier-row {
+            display: flex;
+            align-items: stretch;
+            background-color: #e0e0e0;
+            padding: 6px 12px;
+            border-radius: 5px;
+            position: relative;
+            cursor: grab; 
+            transition: background-color 0.3s, opacity 0.2s ease; 
+        }
+        .tier-row.tier-dragging { 
+            display: none !important; 
+        }
+        .tier-row[data-tier-row-id="tier-unclassified"] { 
+            cursor: default;
+        }
+
+
+        .tier-info {
+            width: 130px;
+            margin-right: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            flex-shrink: 0; 
+        }
+
+        .tier-label { 
+            font-weight: bold;
+            font-size: 0.9em;
+            text-align: center;
+            background-color: #fafafa;
+            padding: 10px 5px;
+            border-radius: 3px;
+            width: 100%;
+            cursor: text;
+            min-height: 20px;
+            transition: background-color 0.3s;
+        }
+        .tier-label:focus {
+            outline: 2px solid #4CAF50;
+            background-color: #d0d0d0;
+        }
+
+        .tier-width-sum {
+            font-size: 0.8em;
+            color: #333;
+            text-align: center;
+            width: 100%;
+        }
+
+        .tier-main-area { 
+            display: flex;
+            flex-direction: column;
+            width: calc(30px * 35); 
+            min-width: calc(30px * 35); 
+            overflow: hidden;
+        }
+
+
+        .tier-ruler {
+            display: flex;
+            height: 15px; 
+            background-color: #f0f0f0; 
+            padding-left: 0; 
+            box-sizing: border-box;
+            width: 100%; 
+        }
+
+        .ruler-tick {
+            min-width: 30px; 
+            width: 30px;     
+            height: 100%;
+            text-align: center;
+            font-size: 10px; 
+            color: #495057;  
+            border-right: 1px solid #d1d1d1; 
+            line-height: 15px; 
+            box-sizing: border-box;
+            flex-shrink: 0; 
+        }
+        .ruler-tick:first-child { 
+             border-left: 1px solid #d1d1d1;
+        }
+
+
+        .tier-dropzone {
+            display: flex;
+            gap: 0; 
+            min-height: 50px;
+            flex-grow: 1; 
+            background-color: #f0f0f0; 
+            padding: 5px 0; 
+            border-radius: 0 0 3px 3px; 
+            border: 1px solid #ccc; 
+            width: 100%; 
+            box-sizing: border-box; 
+            overflow-x: hidden; 
+
+
+            background-image: repeating-linear-gradient(
+                to right,
+                #e5e5e5,     
+                #e5e5e5 1px, 
+                transparent 1px, 
+                transparent 30px 
+            );
+            background-size: 30px 100%; 
+        }
+         .tier-row[data-tier-row-id="tier-unclassified"] .tier-dropzone {
+            flex-wrap: wrap; 
+            overflow-y: auto;
+            width: calc(100% + 5px); 
+        }
+
+
+        .card {
+            height: 50px;
+            padding: 5px; 
+            background-color: #fff;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            cursor: grab;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+            flex-shrink: 0; 
+        }
+
+        .card.dragging { 
+            opacity: 0.5;
+        }
+        .card.dragging-source-hidden { 
+            display: none !important;
+        }
+
+
+        .card-text {
+            width: 100%;
+            text-align: center;
+            padding: 0 4px;
+            word-wrap: break-word; 
+            overflow: hidden; 
+            font-size: 0.8em;
+            white-space: normal; 
+            line-height: 1.2; 
+        }
+        .card-text[contenteditable="true"] {
+            overflow: visible; 
+            background-color: #fff;
+            z-index: 1;
+            position: relative;
+            outline: 1px solid #007bff;
+            cursor: text;
+            white-space: pre-wrap; 
+            min-height: calc(1.2em * 2); 
+        }
+
+
+        #contextMenu {
+            position: absolute; display: none; background-color: #fff;
+            border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            border-radius: 4px; padding: 5px 0; z-index: 1000; min-width: 170px; 
+        }
+        #contextMenu ul { list-style: none; padding: 0; margin: 0; }
+        #contextMenu ul li {
+            padding: 8px 12px; cursor: pointer; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        #contextMenu ul li:hover { background-color: #f0f0f0; }
+        #contextMenu input[type="color"] { margin-left: 8px; padding:0; border: 1px solid #ccc; width: 24px; height: 24px; cursor: pointer; }
+        .cm-item-card { display: flex; } 
+        .cm-item-tier { display: none; } 
+
+
+        .drop-placeholder {
+            background-color: rgba(0, 123, 255, 0.1); 
+            border: 2px dashed #007bff; 
+            box-sizing: border-box; 
+            margin: 0; 
+            height: 50px;
+            border-radius: 4px;
+            flex-shrink: 0; 
+        }
+        .tier-drop-placeholder { 
+            height: 80px; 
+            background-color: rgba(0,0,0,0.08);
+            border: 2px dashed #555;
+            border-radius: 5px;
+            margin: 5px 0; 
+            box-sizing: border-box;
+        }
+
+        button, label[for="fileLoader"] {
+            margin: 5px 5px 5px 0; 
+            padding: 8px 12px; 
+            border-radius: 3px; 
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background-color: #f0f0f0;
+            color: #333;
+            display: inline-block;
+            text-align: center;
+            transition: background-color 0.2s ease;
+            font-family: inherit; 
+            font-size: inherit;   
+            line-height: normal;  
+            box-sizing: border-box; 
+            vertical-align: middle; 
+        }
+        button:hover, label[for="fileLoader"]:hover {
+            background-color: #e0e0e0; 
+        }
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        input[type="text"], select { padding: 8px; border-radius: 3px; border: 1px solid #ccc; margin-right: 5px;}
+        input[type="file"] { display: none; }
+        
+        #auto-save-status {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-top: 10px;
+            min-height: 1.2em;
+        }
+        
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6);
+            display: flex; justify-content: center; align-items: center; z-index: 2000;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-dialog {
+            background-color: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 90%; max-width: 400px; transform: scale(0.9); transition: transform 0.3s ease;
+        }
+        .modal-overlay.visible .modal-dialog { transform: scale(1); }
+        .modal-title { margin-top: 0; margin-bottom: 15px; font-size: 1.25em; color: #333; }
+        .modal-message { margin-top: 0; margin-bottom: 25px; color: #555; line-height: 1.6; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; }
+        .modal-buttons button { padding: 10px 20px; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; transition: background-color 0.2s, box-shadow 0.2s; }
+        #modal-ok-btn { background-color: #4CAF50; color: white; }
+        #modal-ok-btn:hover { background-color: #45a049; }
+        #modal-cancel-btn { background-color: #f0f0f0; color: #333; border: 1px solid #ccc; }
+        #modal-cancel-btn:hover { background-color: #e0e0e0; }
+        
+
+        @media print {
+            body { background-color: #fff; margin: 20px; color: #000; min-width: initial; }
+            h1#mainTitle, .tier-label { color: #000 !important; }
+            .add-card-section, .tier-management-section, .controls-section, #contextMenu, .modal-overlay { display: none !important; }
+            .tier-row { padding: 5px 0; border: 1px solid #ccc; background-color: #fff !important; page-break-inside: avoid; }
+            .tier-container { gap: 15px; }
+            .tier-info { justify-content: flex-start; padding-top: 5px; }
+            .tier-label { background-color: #fafafa !important; border: 1px solid #ccc; }
+            .tier-dropzone { background-image: none; border: none; overflow: visible; }
+            .card { box-shadow: none; border: 1px solid #999; }
+            body, .tier-main-area { max-width: initial; width: 100%; }
+        }
+
+    </style>
+</head>
+<body>
+    <h1 id="mainTitle" contenteditable="true">教育課程表</h1>
+
+    <div class="tier-container" id="tierContainer"></div>
+
+    <div class="add-card-section">
+        <h3 id="addCardTitle">科目を追加</h3>
+        <input type="text" id="newCardText" placeholder="科目のテキスト" value="新規科目">
+        <select id="newCardWidthMultiplier"></select>
+        <select id="targetTierForNewCard"></select>
+        <button onclick="addCardToSelectedTier()">科目を追加</button>
+    </div>
+
+    <div class="tier-management-section">
+        <h3 id="tierManagementTitle">コースを追加</h3>
+        <input type="text" id="newTierLabelInput" placeholder="新規コース名 (例: ４学年)" value="新規コース">
+        <button onclick="addNewTier()">コースを追加</button>
+    </div>
+
+    <div class="controls-section">
+        <h3 id="fileOperationsTitle">ファイル操作</h3>
+        <button onclick="saveTierList()">エクスポート</button>
+        <input type="file" id="fileLoader" accept=".json" onchange="loadTierList(event)">
+        <label for="fileLoader">インポート</label>
+        <button onclick="clearLocalStorageWithConfirm()">自動保存データを削除</button>
+        <div id="auto-save-status"></div>
+    </div>
+
+
+    <div id="contextMenu">
+        <ul>
+            <li id="cm-duplicate" class="cm-item-card">複製</li>
+            <li id="cm-increase-width" class="cm-item-card">単位増(+)</li>
+            <li id="cm-decrease-width" class="cm-item-card">単位減(-)</li>
+            <li id="cm-increase-font-size" class="cm-item-card">文字サイズ大 (+)</li>
+            <li id="cm-decrease-font-size" class="cm-item-card">文字サイズ小 (-)</li>
+            <li id="cm-color-picker-li" class="cm-item-card">
+                <label for="cm-color-input">科目背景色:</label>
+                <input type="color" id="cm-color-input">
+            </li>
+            <li id="cm-delete-card" class="cm-item-card">削除</li>
+            <li id="cm-tier-color-li" class="cm-item-tier">
+                <label for="cm-tier-color-input">コース背景色:</label>
+                <input type="color" id="cm-tier-color-input">
+            </li>
+            <li id="cm-duplicate-tier" class="cm-item-tier">このコースを複製</li>
+            <li id="cm-delete-tier" class="cm-item-tier">このコースを削除</li>
+        </ul>
+    </div>
+
+    <div id="modal-overlay" class="modal-overlay">
+        <div id="modal-dialog" class="modal-dialog">
+            <h3 id="modal-title" class="modal-title"></h3>
+            <p id="modal-message" class="modal-message"></p>
+            <div class="modal-buttons">
+                <button id="modal-cancel-btn">キャンセル</button>
+                <button id="modal-ok-btn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- グローバル変数 ---
+        let draggedCard = null, cardPlaceholder = null, draggedTierRow = null, tierPlaceholder = null;
+        let currentContextMenuCard = null, currentContextMenuTierRow = null; 
+        const CARD_WIDTH_UNIT = 30, MAX_WIDTH_MULTIPLIER = 7, MIN_WIDTH_MULTIPLIER = 1;
+        const CARD_FIXED_HEIGHT = 50, DEFAULT_FONT_SIZE_EM = 0.8, MIN_FONT_SIZE_EM = 0.6;
+        const MAX_FONT_SIZE_EM = 1.2, FONT_SIZE_STEP_EM = 0.05, MAX_RULER_TICKS = 35;
+        const UNCLASSIFIED_TIER_ID = "tier-unclassified", LOCAL_STORAGE_KEY = 'tierListEditorData';
+        let debounceTimer;
+        let history = [];
+        let historyIndex = -1;
+
+        // --- DOM要素の取得 ---
+        const tierContainer = document.getElementById('tierContainer');
+        const contextMenu = document.getElementById('contextMenu');
+        const cmColorInput = document.getElementById('cm-color-input');
+        const cmTierColorInput = document.getElementById('cm-tier-color-input');
+        const newCardWidthMultiplierSelect = document.getElementById('newCardWidthMultiplier');
+        const autoSaveStatusEl = document.getElementById('auto-save-status');
+        
+        const defaultMainPageTitle = "教育課程表"; 
+        const initialTiers = [
+            { id: "tier-1st-grade", label: "１学年" },
+            { id: "tier-2nd-grade", label: "２学年" },
+            { id: "tier-3rd-grade", label: "３学年" },
+            { id: UNCLASSIFIED_TIER_ID, label: "未分類" } 
+        ];
+
+        // --- モーダルダイアログ処理 ---
+        const modalOverlay = document.getElementById('modal-overlay'), modalDialog = document.getElementById('modal-dialog');
+        const modalTitle = document.getElementById('modal-title'), modalMessage = document.getElementById('modal-message');
+        const modalOkBtn = document.getElementById('modal-ok-btn'), modalCancelBtn = document.getElementById('modal-cancel-btn');
+
+        function showAlert(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = message;
+            modalCancelBtn.style.display = 'none';
+            modalOkBtn.style.display = 'inline-block';
+            modalOkBtn.textContent = 'OK';
+            modalOverlay.classList.add('visible');
+            return new Promise(resolve => {
+                const okHandler = () => {
+                    modalOverlay.classList.remove('visible');
+                    modalOkBtn.removeEventListener('click', okHandler);
+                    resolve();
+                };
+                modalOkBtn.addEventListener('click', okHandler);
+            });
+        }
+
+        function showConfirm(title, message, okText = '実行', cancelText = 'キャンセル') {
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = message;
+            modalOkBtn.style.display = 'inline-block';
+            modalCancelBtn.style.display = 'inline-block';
+            modalOkBtn.textContent = okText;
+            modalCancelBtn.textContent = cancelText;
+            modalOverlay.classList.add('visible');
+            return new Promise(resolve => {
+                const okHandler = () => { cleanup(); resolve(true); };
+                const cancelHandler = () => { cleanup(); resolve(false); };
+                const overlayHandler = (e) => { if (e.target === modalOverlay) cancelHandler(); };
+                
+                const cleanup = () => {
+                    modalOverlay.classList.remove('visible');
+                    modalOkBtn.removeEventListener('click', okHandler);
+                    modalCancelBtn.removeEventListener('click', cancelHandler);
+                    modalOverlay.removeEventListener('click', overlayHandler);
+                };
+                
+                modalOkBtn.addEventListener('click', okHandler);
+                modalCancelBtn.addEventListener('click', cancelHandler);
+                modalOverlay.addEventListener('click', overlayHandler);
+                modalDialog.onclick = (e) => e.stopPropagation();
+            });
+        }
+        
+        // --- 履歴＆自動保存機能 ---
+        function recordHistory() {
+            const currentState = getCurrentTierListData();
+            if (history[historyIndex] && JSON.stringify(currentState) === JSON.stringify(history[historyIndex])) {
+                return;
+            }
+            history.splice(historyIndex + 1);
+            history.push(currentState);
+            historyIndex = history.length - 1;
+            scheduleAutoSave(currentState);
+        }
+
+        function scheduleAutoSave(data) {
+            if (autoSaveStatusEl) autoSaveStatusEl.textContent = '変更を検知しました...';
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+                    const now = new Date();
+                    const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+                    if (autoSaveStatusEl) autoSaveStatusEl.textContent = `自動保存済み (${timeString})`;
+                } catch (e) {
+                    if (autoSaveStatusEl) autoSaveStatusEl.textContent = '自動保存に失敗しました。';
+                    console.error("Failed to save to localStorage:", e);
+                }
+            }, 1500);
+        }
+        
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                rebuildTierListFromData(history[historyIndex]);
+            }
+        }
+
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                rebuildTierListFromData(history[historyIndex]);
+            }
+        }
+
+        async function loadStateFromLocalStorage() {
+            const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (savedData) {
+                const confirmed = await showConfirm("データの復元", "前回保存した作業データが見つかりました。復元しますか？", "復元する", "復元しない");
+                if (confirmed) {
+                    try {
+                        rebuildTierListFromData(JSON.parse(savedData));
+                        if (autoSaveStatusEl) autoSaveStatusEl.textContent = 'データを復元しました。';
+                        return true;
+                    } catch (e) {
+                        await showAlert("復元エラー", "データの復元に失敗しました。");
+                        localStorage.removeItem(LOCAL_STORAGE_KEY);
+                    }
+                }
+            }
+            return false;
+        }
+        
+        async function clearLocalStorageWithConfirm() {
+            const confirmed = await showConfirm("自動保存データの削除", "本当に自動保存されたデータを削除しますか？<br>この操作は取り消せません。");
+            if (confirmed) {
+                localStorage.removeItem(LOCAL_STORAGE_KEY);
+                if (autoSaveStatusEl) autoSaveStatusEl.textContent = '自動保存データを削除しました。';
+                await showAlert("削除完了", "自動保存データを削除しました。");
+            }
+        }
+
+        // --- コース/カードの生成 ---
+        function createTierRow(tierId, labelText, colors = {}) {
+            const tierRow = document.createElement('div');
+            tierRow.className = 'tier-row';
+            tierRow.dataset.tierRowId = tierId;
+            if (colors.row) tierRow.style.backgroundColor = colors.row;
+            
+            if (tierId !== UNCLASSIFIED_TIER_ID) { 
+                tierRow.draggable = true;
+                tierRow.addEventListener('dragstart', handleTierDragStart);
+                tierRow.addEventListener('dragend', handleTierDragEnd);
+            } else {
+                tierRow.style.cursor = 'default'; 
+            }
+            tierRow.addEventListener('contextmenu', handleTierRowContextMenu);
+
+            const tierInfo = document.createElement('div');
+            tierInfo.className = 'tier-info';
+
+            const tierLabel = document.createElement('div');
+            tierLabel.className = 'tier-label';
+            tierLabel.textContent = labelText;
+            if (tierId !== UNCLASSIFIED_TIER_ID) tierLabel.contentEditable = true;
+            tierLabel.addEventListener('blur', () => {
+                if(tierLabel.textContent.trim() === "") tierLabel.textContent = "名称未設定コース";
+                updateTargetTierForNewCardOptions();
+                recordHistory();
+            });
+
+            const tierWidthSumDisplay = document.createElement('div');
+            tierWidthSumDisplay.className = 'tier-width-sum';
+            tierWidthSumDisplay.textContent = `合計: 0 単位`;
+            tierInfo.append(tierLabel, tierWidthSumDisplay);
+
+            const tierMainArea = document.createElement('div');
+            tierMainArea.className = 'tier-main-area';
+            const tierRuler = document.createElement('div');
+            tierRuler.className = 'tier-ruler';
+            for (let i = 1; i <= MAX_RULER_TICKS; i++) { 
+                const tick = document.createElement('div');
+                tick.className = 'ruler-tick';
+                tick.textContent = i;
+                tierRuler.appendChild(tick);
+            }
+            const tierDropzone = document.createElement('div');
+            tierDropzone.className = 'tier-dropzone';
+            tierDropzone.dataset.tierId = tierId;
+            setupDropzoneEventListeners(tierDropzone);
+            tierMainArea.append(tierRuler, tierDropzone);
+            tierRow.append(tierInfo, tierMainArea);
+
+            const unclassifiedRow = tierContainer.querySelector(`[data-tier-row-id="${UNCLASSIFIED_TIER_ID}"]`);
+            if (tierId === UNCLASSIFIED_TIER_ID) {
+                tierContainer.appendChild(tierRow);
+            } else if (unclassifiedRow) {
+                tierContainer.insertBefore(tierRow, unclassifiedRow);
+            } else {
+                tierContainer.appendChild(tierRow); 
+            }
+            updateTargetTierForNewCardOptions();
+            return tierRow;
+        }
+
+        async function addNewTier() { 
+            const newTierLabelInput = document.getElementById('newTierLabelInput');
+            let label = newTierLabelInput.value.trim();
+            if (!label) {
+                await showAlert("入力エラー", "コース名を入力してください。");
+                return;
+            }
+            createTierRow(`tier-${Date.now()}`, label); 
+            newTierLabelInput.value = "新規コース";
+            recordHistory();
+        }
+
+        function canPlaceCardInDropzone(dropzone, cardWidthToAdd, excludingCardId = null) {
+            if (dropzone.dataset.tierId === UNCLASSIFIED_TIER_ID) return true; 
+            let currentTotalWidth = [...dropzone.querySelectorAll('.card:not(.dragging-source-hidden)')]
+                .filter(card => card.id !== excludingCardId)
+                .reduce((sum, card) => sum + parseInt(card.dataset.widthMultiplier, 10), 0);
+            return (currentTotalWidth + cardWidthToAdd) <= MAX_RULER_TICKS;
+        }
+
+        function updateTierWidthSum(tierDropzone) {
+            if (!tierDropzone) return;
+            let total = [...tierDropzone.querySelectorAll('.card:not(.dragging-source-hidden)')]
+                .reduce((sum, card) => sum + parseInt(card.dataset.widthMultiplier, 10), 0);
+            const sumDisplay = tierDropzone.closest('.tier-row')?.querySelector('.tier-width-sum');
+            if (sumDisplay) sumDisplay.textContent = `合計: ${total} 単位`;
+        }
+        
+        const updateAllTierWidthSums = () => document.querySelectorAll('.tier-dropzone').forEach(updateTierWidthSum);
+
+        function updateTargetTierForNewCardOptions() {
+            const select = document.getElementById('targetTierForNewCard');
+            const currentVal = select.value;
+            select.innerHTML = '';
+            document.querySelectorAll('.tier-row').forEach(row => {
+                const option = document.createElement('option');
+                option.value = row.dataset.tierRowId;
+                option.textContent = row.querySelector('.tier-label').textContent;
+                select.appendChild(option);
+            });
+            const unclassifiedOption = select.querySelector(`option[value="${UNCLASSIFIED_TIER_ID}"]`);
+            if (unclassifiedOption) {
+                select.value = UNCLASSIFIED_TIER_ID;
+            } else if (currentVal) {
+                select.value = currentVal;
+            }
+        }
+
+        function getRandomPastelColor() {
+            return `hsl(${Math.floor(Math.random() * 360)}, 70%, 85%)`;
+        }
+
+        function createCard(text = "新規科目", widthMultiplier = 2, color = null, cardId = null, fontSize = `${DEFAULT_FONT_SIZE_EM}em`) { 
+            const card = document.createElement('div');
+            card.id = cardId || `card-${Date.now()}`;
+            card.className = 'card';
+            card.draggable = true;
+            card.style.width = `${CARD_WIDTH_UNIT * widthMultiplier}px`; 
+            card.style.backgroundColor = color || getRandomPastelColor();
+            card.dataset.widthMultiplier = widthMultiplier;
+            card.dataset.fontSize = fontSize; 
+
+            const cardText = document.createElement('div');
+            cardText.className = 'card-text';
+            cardText.innerHTML = text; 
+            cardText.style.fontSize = fontSize; 
+
+            cardText.addEventListener('dblclick', () => { cardText.contentEditable = 'true'; cardText.focus(); });
+            cardText.addEventListener('blur', () => {
+                cardText.contentEditable = 'false';
+                if (cardText.textContent.trim() === "") cardText.innerHTML = "名称未設定"; 
+                recordHistory();
+            });
+            card.appendChild(cardText);
+            setupCardEventListeners(card);
+            return card;
+        }
+
+        async function addCardToSelectedTier() { 
+            const text = document.getElementById('newCardText').value || '新規科目';
+            const width = parseInt(newCardWidthMultiplierSelect.value, 10);
+            const tierId = document.getElementById('targetTierForNewCard').value;
+            if (!tierId) return await showAlert("コース未選択", "科目を追加するコースを選択または作成してください。");
+            
+            const dropzone = document.querySelector(`.tier-dropzone[data-tier-id="${tierId}"]`);
+            if (dropzone) {
+                if (dropzone.dataset.tierId !== UNCLASSIFIED_TIER_ID && !canPlaceCardInDropzone(dropzone, width)) { 
+                    const tierLabel = dropzone.closest('.tier-row').querySelector('.tier-label').textContent;
+                    return await showAlert("単位数超過", `コース「<b>${tierLabel}</b>」は${MAX_RULER_TICKS}単位が上限です。`);
+                }
+                dropzone.appendChild(createCard(text.replace(/\n/g, '<br>'), width));
+                updateTierWidthSum(dropzone);
+                recordHistory();
+            }
+        }
+
+        function setupCardEventListeners(card) {
+            card.addEventListener('dragstart', handleCardDragStart); 
+            card.addEventListener('dragend', handleCardDragEnd);   
+            card.addEventListener('contextmenu', (e) => {
+                e.preventDefault(); e.stopPropagation(); 
+                currentContextMenuCard = card;
+                currentContextMenuTierRow = null; 
+                showContextMenu(e.pageX, e.pageY, 'card');
+            });
+        }
+
+        function setupDropzoneEventListeners(zone) {
+            zone.addEventListener('dragover', handleCardDragOver); 
+            zone.addEventListener('dragleave', handleCardDragLeave); 
+            zone.addEventListener('drop', handleCardDrop);     
+        }
+
+        function handleTierRowContextMenu(e) {
+            if (e.target.closest('.card') || e.target.closest('.tier-label[contenteditable="true"]')) return;
+            e.preventDefault(); e.stopPropagation();
+            currentContextMenuTierRow = e.currentTarget; 
+            currentContextMenuCard = null; 
+            showContextMenu(e.pageX, e.pageY, 'tier');
+        }
+        
+        // --- ドラッグ＆ドロップ処理 ---
+        let originalDropzoneForSumUpdate = null;
+
+        function handleCardDragStart(e) {
+            draggedCard = e.target.closest('.card');
+            if (!draggedCard || e.target.closest('[contenteditable="true"]')) { e.preventDefault(); return; }
+            
+            originalDropzoneForSumUpdate = draggedCard.parentElement;
+            
+            e.stopPropagation(); 
+            setTimeout(() => { draggedCard.classList.add('dragging-source-hidden'); }, 0);
+            e.dataTransfer.setData('text/plain', draggedCard.id);
+            e.dataTransfer.effectAllowed = 'move';
+            cardPlaceholder = document.createElement('div');
+            cardPlaceholder.className = 'drop-placeholder';
+            cardPlaceholder.style.width = draggedCard.style.width;
+        }
+
+        function handleCardDragEnd() {
+            draggedCard?.classList.remove('dragging-source-hidden');
+            cardPlaceholder?.remove();
+            
+            updateAllTierWidthSums();
+            
+            draggedCard = null;
+            cardPlaceholder = null;
+            originalDropzoneForSumUpdate = null;
+            recordHistory();
+        }
+
+        function handleCardDragOver(e) {
+            e.preventDefault();
+            if (!draggedCard) return;
+            const dropzone = e.currentTarget;
+            if (!dropzone.classList.contains('tier-dropzone')) return;
+
+            const width = parseInt(draggedCard.dataset.widthMultiplier, 10);
+            if (dropzone.dataset.tierId !== UNCLASSIFIED_TIER_ID && !canPlaceCardInDropzone(dropzone, width, draggedCard.id)) {
+                e.dataTransfer.dropEffect = "none";
+                cardPlaceholder?.remove();
+                return;
+            }
+            e.dataTransfer.dropEffect = "move";
+            const afterElement = getCardDragAfterElement(dropzone, e.clientX);
+            dropzone.insertBefore(cardPlaceholder, afterElement);
+        }
+
+        function handleCardDragLeave(e) {
+            if (e.currentTarget.contains(e.relatedTarget)) return;
+            cardPlaceholder?.remove();
+        }
+
+        async function handleCardDrop(e) {
+            e.preventDefault();
+            if (!draggedCard) return;
+            const dropzone = e.currentTarget;
+            if (!dropzone.classList.contains('tier-dropzone') || !cardPlaceholder?.parentNode) return;
+
+            dropzone.insertBefore(draggedCard, cardPlaceholder);
+            
+            if (originalDropzoneForSumUpdate !== dropzone) {
+                updateTierWidthSum(originalDropzoneForSumUpdate);
+            }
+            updateTierWidthSum(dropzone);
+        }
+
+        function getCardDragAfterElement(container, x) {
+            const draggables = [...container.querySelectorAll('.card:not(.dragging-source-hidden)')];
+            return draggables.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = x - box.left - box.width / 2;
+                return (offset < 0 && offset > closest.offset) ? { offset, element: child } : closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function handleTierDragStart(e) {
+            draggedTierRow = e.target.closest('.tier-row');
+            if (!draggedTierRow || draggedTierRow.dataset.tierRowId === UNCLASSIFIED_TIER_ID || e.target.closest('[contenteditable="true"]')) {
+                e.preventDefault(); return;
+            }
+            setTimeout(() => { draggedTierRow.classList.add('tier-dragging'); }, 0);
+            tierPlaceholder = document.createElement('div');
+            tierPlaceholder.className = 'tier-drop-placeholder';
+        }
+
+        function handleTierDragEnd() {
+            draggedTierRow?.classList.remove('tier-dragging');
+            tierPlaceholder?.remove();
+            draggedTierRow = null;
+            tierPlaceholder = null;
+            updateTargetTierForNewCardOptions();
+            recordHistory();
+        }
+
+        tierContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (!draggedTierRow) return;
+            const afterElement = getTierDragAfterElement(tierContainer, e.clientY);
+            const unclassifiedRow = tierContainer.querySelector(`[data-tier-row-id="${UNCLASSIFIED_TIER_ID}"]`);
+            if (afterElement) tierContainer.insertBefore(tierPlaceholder, afterElement);
+            else if (unclassifiedRow) tierContainer.insertBefore(tierPlaceholder, unclassifiedRow);
+            else tierContainer.appendChild(tierPlaceholder);
+        });
+
+        tierContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (draggedTierRow && tierPlaceholder?.parentNode) {
+                tierContainer.insertBefore(draggedTierRow, tierPlaceholder);
+            }
+        });
+
+        function getTierDragAfterElement(container, y) {
+            const draggables = [...container.querySelectorAll('.tier-row:not(.tier-dragging):not([data-tier-row-id="' + UNCLASSIFIED_TIER_ID + '"])')];
+            return draggables.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                return (offset < 0 && offset > closest.offset) ? { offset, element: child } : closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        // --- 右クリックメニュー処理 ---
+        function showContextMenu(x, y, type) { 
+            contextMenu.style.left = `${x}px`;
+            contextMenu.style.top = `${y}px`;
+            contextMenu.style.display = 'block';
+
+            contextMenu.querySelectorAll('.cm-item-card').forEach(i => i.style.display = 'none');
+            contextMenu.querySelectorAll('.cm-item-tier').forEach(i => i.style.display = 'none');
+
+            if (type === 'card' && currentContextMenuCard) {
+                contextMenu.querySelectorAll('.cm-item-card').forEach(i => i.style.display = 'flex');
+                cmColorInput.value = rgbToHex(currentContextMenuCard.style.backgroundColor);
+            } else if (type === 'tier' && currentContextMenuTierRow?.dataset.tierRowId !== UNCLASSIFIED_TIER_ID) {
+                contextMenu.querySelectorAll('.cm-item-tier').forEach(i => i.style.display = 'flex');
+                cmTierColorInput.value = rgbToHex(currentContextMenuTierRow.style.backgroundColor);
+            }
+            document.addEventListener('click', hideContextMenuOnClickOutside, true);
+        }
+
+        function hideContextMenu() {
+            contextMenu.style.display = 'none';
+            document.removeEventListener('click', hideContextMenuOnClickOutside, true);
+        }
+
+        function hideContextMenuOnClickOutside(e) {
+            if (!contextMenu.contains(e.target)) hideContextMenu();
+        }
+
+        contextMenu.addEventListener('click', (e) => {
+            if (e.target.matches('li')) hideContextMenu();
+        });
+        
+        document.getElementById('cm-delete-tier').addEventListener('click', async () => { 
+            if (!currentContextMenuTierRow) return;
+            const label = currentContextMenuTierRow.querySelector('.tier-label')?.textContent || 'このコース';
+            const confirmed = await showConfirm("コースの削除", `コース「<b>${label}</b>」を削除しますか？`);
+            if (confirmed) {
+                currentContextMenuTierRow.remove(); 
+                updateTargetTierForNewCardOptions(); 
+                recordHistory();
+            }
+        });
+
+        document.getElementById('cm-duplicate-tier').addEventListener('click', () => {
+            if (!currentContextMenuTierRow) return;
+            const originalLabel = currentContextMenuTierRow.querySelector('.tier-label');
+            const newTierRow = createTierRow(`tier-${Date.now()}`, `${originalLabel.textContent}のコピー`, {
+                row: currentContextMenuTierRow.style.backgroundColor,
+            });
+            const newDropzone = newTierRow.querySelector('.tier-dropzone');
+            currentContextMenuTierRow.querySelectorAll('.card').forEach(card => {
+                const width = parseInt(card.dataset.widthMultiplier, 10);
+                if (canPlaceCardInDropzone(newDropzone, width)) {
+                    newDropzone.appendChild(createCard(card.querySelector('.card-text').innerHTML, width, card.style.backgroundColor, null, card.dataset.fontSize));
+                }
+            });
+            updateTierWidthSum(newDropzone);
+            tierContainer.insertBefore(newTierRow, currentContextMenuTierRow.nextSibling);
+            recordHistory();
+        });
+
+        document.getElementById('cm-delete-card').addEventListener('click', () => {
+            if (!currentContextMenuCard) return;
+            const parent = currentContextMenuCard.parentElement;
+            currentContextMenuCard.remove();
+            updateTierWidthSum(parent);
+            recordHistory();
+        });
+
+        document.getElementById('cm-duplicate').addEventListener('click', async () => { 
+            if (!currentContextMenuCard) return;
+            
+            const unclassifiedDropzone = document.querySelector(`.tier-dropzone[data-tier-id="${UNCLASSIFIED_TIER_ID}"]`);
+            if (!unclassifiedDropzone) {
+                console.error("Unclassified tier not found!");
+                return;
+            }
+
+            const width = parseInt(currentContextMenuCard.dataset.widthMultiplier, 10);
+            const newCard = createCard(currentContextMenuCard.querySelector('.card-text').innerHTML, width, currentContextMenuCard.style.backgroundColor, null, currentContextMenuCard.dataset.fontSize); 
+            
+            unclassifiedDropzone.appendChild(newCard);
+            updateTierWidthSum(unclassifiedDropzone);
+            recordHistory();
+        });
+
+        document.getElementById('cm-increase-width').addEventListener('click', async () => { 
+            if (!currentContextMenuCard) return;
+            let width = parseInt(currentContextMenuCard.dataset.widthMultiplier, 10);
+            if (width >= MAX_WIDTH_MULTIPLIER) return;
+            const parent = currentContextMenuCard.parentElement;
+            if (parent.dataset.tierId !== UNCLASSIFIED_TIER_ID && !canPlaceCardInDropzone(parent, 1, currentContextMenuCard.id)) { 
+                return await showAlert("単位数超過", "このコースの上限単位数を超えて単位を増やせません。");
+            }
+            width++;
+            currentContextMenuCard.style.width = `${CARD_WIDTH_UNIT * width}px`;
+            currentContextMenuCard.dataset.widthMultiplier = width;
+            updateTierWidthSum(parent);
+            recordHistory();
+        });
+
+        document.getElementById('cm-decrease-width').addEventListener('click', () => {
+            if (!currentContextMenuCard) return;
+            let width = parseInt(currentContextMenuCard.dataset.widthMultiplier, 10);
+            if (width <= MIN_WIDTH_MULTIPLIER) return;
+            width--;
+            currentContextMenuCard.style.width = `${CARD_WIDTH_UNIT * width}px`;
+            currentContextMenuCard.dataset.widthMultiplier = width;
+            updateTierWidthSum(currentContextMenuCard.parentElement);
+            recordHistory();
+        });
+        
+        const updateCardFontSize = (card, step) => {
+            if (!card) return;
+            const text = card.querySelector('.card-text');
+            let size = parseFloat(card.dataset.fontSize || `${DEFAULT_FONT_SIZE_EM}`);
+            size = Math.max(MIN_FONT_SIZE_EM, Math.min(MAX_FONT_SIZE_EM, size + step));
+            const newSizeStr = `${size.toFixed(2)}em`;
+            text.style.fontSize = newSizeStr;
+            card.dataset.fontSize = newSizeStr;
+            recordHistory();
+        };
+
+        document.getElementById('cm-increase-font-size').addEventListener('click', () => updateCardFontSize(currentContextMenuCard, FONT_SIZE_STEP_EM));
+        document.getElementById('cm-decrease-font-size').addEventListener('click', () => updateCardFontSize(currentContextMenuCard, -FONT_SIZE_STEP_EM));
+
+        cmColorInput.addEventListener('change', (e) => { if (currentContextMenuCard) { currentContextMenuCard.style.backgroundColor = e.target.value; recordHistory(); }});
+        cmTierColorInput.addEventListener('change', (e) => { if (currentContextMenuTierRow) { currentContextMenuTierRow.style.backgroundColor = e.target.value; recordHistory(); }});
+        
+        // --- 保存・読込 ---
+        function getCurrentTierListData() {
+            const tiers = [...document.querySelectorAll('.tier-row')].map(row => {
+                const label = row.querySelector('.tier-label');
+                return {
+                    id: row.dataset.tierRowId, 
+                    label: label.textContent,
+                    rowColor: row.style.backgroundColor,
+                    cards: [...row.querySelectorAll('.card')].map(card => ({
+                        id: card.id,
+                        text: card.querySelector('.card-text').innerHTML, 
+                        widthMultiplier: parseInt(card.dataset.widthMultiplier, 10),
+                        color: card.style.backgroundColor,
+                        fontSize: card.dataset.fontSize
+                    }))
+                };
+            });
+            return { mainTitle: document.getElementById('mainTitle').textContent, tiers };
+        }
+
+        function saveTierList() {
+            const data = getCurrentTierListData();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+            a.download = 'data.json';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function loadTierList(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => { 
+                try {
+                    rebuildTierListFromData(JSON.parse(e.target.result));
+                    history = [getCurrentTierListData()];
+                    historyIndex = 0;
+                } catch (err) {
+                    await showAlert("読込エラー", "ファイルの読み込みに失敗しました: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = null;
+        }
+        
+        function rebuildTierListFromData(data) {
+            if (!data || !Array.isArray(data.tiers)) return;
+            document.getElementById('mainTitle').textContent = data.mainTitle || defaultMainPageTitle;
+            document.getElementById('pageTitle').textContent = data.mainTitle || defaultMainPageTitle;
+            tierContainer.innerHTML = ''; 
+
+            data.tiers.forEach(tierData => {
+                const tierRow = createTierRow(tierData.id, tierData.label, { row: tierData.rowColor }); 
+                const dropzone = tierRow.querySelector('.tier-dropzone');
+                tierData.cards?.forEach(cardData => {
+                    dropzone.appendChild(createCard(cardData.text, cardData.widthMultiplier, cardData.color, cardData.id, cardData.fontSize));
+                });
+            });
+            updateAllTierWidthSums();
+            updateTargetTierForNewCardOptions();
+        }
+        
+        function setupMainTitleEditing() {
+            const mainTitleEl = document.getElementById('mainTitle');
+            mainTitleEl.addEventListener('blur', () => {
+                if (mainTitleEl.textContent.trim() === "") mainTitleEl.textContent = defaultMainPageTitle;
+                document.getElementById('pageTitle').textContent = mainTitleEl.textContent;
+                recordHistory();
+            });
+        }
+
+        function initializeNewCardWidthOptions() {
+            for (let i = MIN_WIDTH_MULTIPLIER; i <= MAX_WIDTH_MULTIPLIER; i++) { 
+                const option = new Option(`${i} 単位`, i);
+                newCardWidthMultiplierSelect.add(option);
+            }
+            newCardWidthMultiplierSelect.value = 2; 
+        }
+
+        function initializeDefaultBoard() {
+            initialTiers.forEach(tier => createTierRow(tier.id, tier.label));
+            const firstDropzone = tierContainer.querySelector(`.tier-dropzone:not([data-tier-id="${UNCLASSIFIED_TIER_ID}"])`); 
+            if(firstDropzone){
+                 firstDropzone.append(createCard("サンプル科目1", 2), createCard("サンプル科目2", 3));
+            }
+             updateAllTierWidthSums();
+             updateTargetTierForNewCardOptions();
+        }
+        
+        function rgbToHex(rgb) {
+            if (!rgb || !rgb.startsWith('rgb')) return '#eeeeee';
+            const result = rgb.match(/\d+/g);
+            if (!result || result.length < 3) return '#eeeeee';
+            return "#" + result.slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+        }
+
+        async function initializeEditor() {
+            initializeNewCardWidthOptions();
+            setupMainTitleEditing();
+
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === 'z') { e.preventDefault(); undo(); }
+                    if (e.key === 'y') { e.preventDefault(); redo(); }
+                }
+            });
+
+            const restored = await loadStateFromLocalStorage();
+            if (!restored) {
+                initializeDefaultBoard();
+            }
+
+            history = [getCurrentTierListData()];
+            historyIndex = 0;
+            
+            if (autoSaveStatusEl) autoSaveStatusEl.textContent = '準備完了';
+        }
+
+        initializeEditor();
+    </script>
+</body>
+</html>
