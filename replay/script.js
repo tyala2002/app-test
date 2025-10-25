@@ -23,12 +23,20 @@ let dataQueue = [];
 let delayTimer = null;
 let queueTimer = null;
 
-// --- 録画と再生のMIMEタイプ ---
+// --- ▼▼▼ 修正: 録画と再生のMIMEタイプ ▼▼▼ ---
+// iPhone (Safari) がサポートする MP4 形式を先頭に追加
 const mimeType = [
+    'video/mp4; codecs="avc1.42E01E, mp4a.40.2"',
+    'video/mp4; codecs="avc1, mp4a.40.2"',
+    'video/mp4',
     'video/webm; codecs="vp8, opus"',
     'video/webm; codecs=vp8',
     'video/webm'
 ].find(type => MediaRecorder.isTypeSupported(type));
+
+console.log("選択されたMIMEタイプ:", mimeType); // デバッグ用にログ出力
+// --- ▲▲▲ 修正 ▲▲▲ ---
+
 if (!mimeType) {
     alert('お使いのブラウザはMediaRecorderでサポートされているMIMEタイプに対応していません。');
 }
@@ -54,17 +62,13 @@ gridCountInput.addEventListener('input', () => {
 
 /**
  * CSSの linear-gradient 文字列を動的に生成する関数
- * @param {string} direction 'to right' (縦線用) または 'to bottom' (横線用)
- * @param {number} count 線の本数
- * @returns {string} CSSの background-image プロパティ値
  */
 function generateGradient(direction, count) {
     let stops = [];
-    const step = 100 / (count + 1); // 1区画のパーセンテージ
+    const step = 100 / (count + 1);
 
     for (let i = 1; i <= count; i++) {
         const pos = (i * step).toFixed(2);
-        // 1pxの線を引くためのCSS stops を追加
         stops.push(
             `transparent ${pos}%,` +
             `rgba(255, 255, 255, 0.4) ${pos}%,` +
@@ -87,11 +91,9 @@ function updateGridStyle() {
         return;
     }
 
-    // 縦線と横線のCSS文字列を生成
     const gradientV = generateGradient('to right', lineCount);
     const gradientH = generateGradient('to bottom', lineCount);
-
-    // gridOverlay の CSS変数にセットする
+    
     gridOverlay.style.setProperty('--grid-lines-v', gradientV);
     gridOverlay.style.setProperty('--grid-lines-h', gradientH);
 }
@@ -117,7 +119,6 @@ function loadSettings() {
     const savedGridToggle = localStorage.getItem(GRID_TOGGLE_STORAGE_KEY);
     if (savedGridToggle !== null) {
         gridToggle.checked = (savedGridToggle === 'true');
-        // 読み込んだ設定をUIに反映させるため、イベントを発火
         gridToggle.dispatchEvent(new Event('change'));
     }
 
@@ -125,7 +126,6 @@ function loadSettings() {
     const savedMirrorToggle = localStorage.getItem(MIRROR_TOGGLE_STORAGE_KEY);
     if (savedMirrorToggle !== null) {
         mirrorToggle.checked = (savedMirrorToggle === 'true');
-        // 読み込んだ設定をUIに反映させるため、イベントを発火
         mirrorToggle.dispatchEvent(new Event('change'));
     }
     
@@ -139,38 +139,30 @@ function loadSettings() {
 function resizeGridOverlay() {
     const videoWidth = delayedVideo.videoWidth;
     const videoHeight = delayedVideo.videoHeight;
-    
-    // ラッパー（親）のサイズ
     const wrapperWidth = videoWrapper.clientWidth;
     const wrapperHeight = videoWrapper.clientHeight;
 
-    // ビデオの解像度がまだ取得できていない場合は何もしない
     if (!videoWidth || !videoHeight || !wrapperWidth || !wrapperHeight) {
         return;
     }
 
-    // アスペクト比を計算
     const videoRatio = videoWidth / videoHeight;
     const wrapperRatio = wrapperWidth / wrapperHeight;
 
     let newWidth, newHeight, top, left;
 
-    // object-fit: contain のロジックをJSで再現
     if (videoRatio > wrapperRatio) {
-        // ビデオが横長（ラッパーが縦長）-> 幅をラッパーに合わせる
         newWidth = wrapperWidth;
         newHeight = newWidth / videoRatio;
         top = (wrapperHeight - newHeight) / 2;
         left = 0;
     } else {
-        // ビデオが縦長（ラッパーが横長）-> 高さをラッパーに合わせる
         newHeight = wrapperHeight;
         newWidth = newHeight * videoRatio;
         left = (wrapperWidth - newWidth) / 2;
         top = 0;
     }
 
-    // 計算した値をグリッドオーバーレイのスタイルに適用
     gridOverlay.style.width = `${newWidth}px`;
     gridOverlay.style.height = `${newHeight}px`;
     gridOverlay.style.top = `${top}px`;
@@ -202,6 +194,7 @@ startBtn.onclick = async () => {
         mediaSource.addEventListener('sourceopen', () => {
             if (mediaSource.sourceBuffers.length > 0) return;
             try {
+                // ★ MimeSource.addSourceBuffer にも選択された mimeType を使う
                 sourceBuffer = mediaSource.addSourceBuffer(mimeType);
             } catch (e) {
                 console.error("addSourceBuffer エラー:", e);
@@ -217,6 +210,7 @@ startBtn.onclick = async () => {
         delayedVideo.src = URL.createObjectURL(mediaSource);
 
         // 3. MediaRecorder (録画側) の準備
+        // ★ MediaRecorder にも選択された mimeType を使う
         mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mimeType });
         mediaRecorder.ondataavailable = (event) => {
             if (event.data && event.data.size > 0) {
@@ -227,7 +221,7 @@ startBtn.onclick = async () => {
 
         // UIの制御
         startBtn.textContent = '停止'; 
-        startBtn.classList.add('stop-button'); // ★ モダンUI用にクラスを追加
+        startBtn.classList.add('stop-button');
         startBtn.onclick = stopRecording; 
         delaySecondsInput.disabled = true; 
 
