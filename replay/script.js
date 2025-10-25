@@ -39,7 +39,7 @@ const mimeType = [
 console.log("選択されたMIMEタイプ:", mimeType);
 
 if (!mimeType) {
-    alert('お使いのブラウザは、録画とストリーミング再生に必要なMIMEタイプに対応していません。\n(iPhoneの場合、iOSのバージョンが古いか、MediaSource APIがMP4に対応していない可能性があります)');
+    alert('お使いのブラウザは、録画とストリーミング再生に必要なMIMEタイプに対応していません。');
 }
 
 // --- (スライダー, グリッド, 設定ロード, リサイズ関数は変更なし) ---
@@ -150,56 +150,44 @@ mirrorToggle.addEventListener('change', () => {
 });
 
 
-// --- ▼▼▼ 修正: 開始ボタンの処理 ▼▼▼ ---
-startBtn.onclick = async () => {
+// --- ▼▼▼ 修正: 開始ボタンの処理 (async/await を廃止) ▼▼▼ ---
+startBtn.onclick = () => {
     
     if (!mimeType) {
         alert('このブラウザでは実行に必要な機能がサポートされていません。');
         return;
     }
 
-    try {
-        // --- ★ 修正ポイント 1 ---
-        // 最初に MediaSource を準備し、play() を呼ぶ
+    // 1. MediaSourceの準備
+    mediaSource = new MediaSource();
+    mediaSource.addEventListener('sourceopen', () => {
+        console.log("MediaSource 'sourceopen' イベント発火");
+        if (mediaSource.sourceBuffers.length > 0) return;
+        try {
+            sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+        } catch (e) {
+            console.error("addSourceBuffer エラー:", e);
+            stopRecording();
+            return;
+        }
         
-        // 2. MediaSource (遅延再生側) の準備
-        mediaSource = new MediaSource();
-        mediaSource.addEventListener('sourceopen', () => {
-            if (mediaSource.sourceBuffers.length > 0) return;
-            try {
-                sourceBuffer = mediaSource.addSourceBuffer(mimeType);
-            } catch (e) {
-                console.error("addSourceBuffer エラー:", e);
-                stopRecording();
-                return;
-            }
-            
-            // ★ sourceopen 内部でも play() を呼ぶ（2回目）
-            // これが実際に再生を開始する
-            delayedVideo.play().catch(e => {
-                console.warn("Play() (sourceopen内) に失敗しました:", e);
-            });
-            
-            const delayInMs = parseFloat(delaySecondsInput.value) * 1000;
-            delayTimer = setTimeout(processQueue, delayInMs);
-        }, { once: true });
-        
-        delayedVideo.src = URL.createObjectURL(mediaSource);
+        // 最初のキュー処理を予約
+        const delayInMs = parseFloat(delaySecondsInput.value) * 1000;
+        delayTimer = setTimeout(processQueue, delayInMs);
+    }, { once: true });
 
-        // ★★★ await の前に play() を呼ぶ (iOSの制限対策) ★★★
-        // これで "ユーザー操作" として 'play' が許可される (1回目)
-        delayedVideo.play().catch(e => {
-            console.warn("Play() (先行呼び出し) に失敗しました:", e);
-        });
+    delayedVideo.src = URL.createObjectURL(mediaSource);
+    delayedVideo.load();
 
-        // --- ★ 修正ポイント 2 ---
-        // play() の後に await getUserMedia() を呼ぶ
-
-        // 1. カメラ映像の取得
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-        });
+    // 2. カメラの起動 (非同期)
+    navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+    })
+    .then(stream => {
+        // --- ▼ カメラ起動成功時 (この中は 'await' と同じで、タップ操作の外) ---
+        console.log("カメラ起動成功");
+        mediaStream = stream;
 
         // 3. MediaRecorder (録画側) の準備
         mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mimeType });
@@ -210,17 +198,27 @@ startBtn.onclick = async () => {
         };
         mediaRecorder.start(500);
 
-        // UIの制御
+        // 4. UIの制御
         startBtn.textContent = '停止'; 
         startBtn.classList.add('stop-button');
         startBtn.onclick = stopRecording; 
         delaySecondsInput.disabled = true; 
-
-    } catch (err) {
+        // --- ▲ カメラ起動成功時ここまで ---
+    })
+    .catch(err => {
+        // --- ▼ カメラ起動失敗時 ---
         console.error('エラー:', err);
         alert('カメラの起動に失敗しました。\n(HTTPS接続でないか、カメラへのアクセスを許可しませんでした)\n' + err.message);
         location.reload();
-    }
+        // --- ▲ カメラ起動失敗時ここまで ---
+    });
+
+    // 5. ★最重要★
+    // すべての非同期処理 (getUserMedia, sourceopen) の *前* に、
+    // タップ操作と同期して play() を呼び出す
+    delayedVideo.play().catch(e => {
+        console.warn("Play() (先行呼び出し) に失敗しました (iOSでは想定内):", e);
+    });
 };
 // --- ▲▲▲ 修正 ▲▲▲ ---
 
