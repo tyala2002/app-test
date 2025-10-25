@@ -116,11 +116,23 @@ function resizeElements() {
         return;
     }
 
-    const videoRatio = videoWidth / videoHeight;
+    // ★追加: デバイスの向きと映像の向きをチェック
+    const isDeviceLandscape = window.matchMedia("(orientation: landscape)").matches;
+    const isVideoPortrait = videoHeight > videoWidth;
+
+    let videoW = videoWidth;
+    let videoH = videoHeight;
+
+    // デバイスが横向きで、映像が縦向き (iPhone特有) の場合、仮想的に回転
+    if (isDeviceLandscape && isVideoPortrait) {
+        [videoW, videoH] = [videoHeight, videoWidth]; // (例: 1920, 1080)
+    }
+
+    // object-fit: contain の計算
+    const videoRatio = videoW / videoH;
     const wrapperRatio = wrapperWidth / wrapperHeight;
     let newWidth, newHeight, top, left;
 
-    // object-fit: contain の計算
     if (videoRatio > wrapperRatio) {
         newWidth = wrapperWidth;
         newHeight = newWidth / videoRatio;
@@ -154,6 +166,7 @@ window.addEventListener('orientationchange', resizeElements);
 
 // --- 左右反転チェックボックスの処理 ---
 mirrorToggle.addEventListener('change', () => {
+    // CanvasのCSSクラスをトグル（描画には影響しない、CSSでの反転用）
     delayedCanvas.classList.toggle('mirror-active', mirrorToggle.checked);
 });
 
@@ -186,32 +199,60 @@ function frameLoop() {
         const timeElapsed = now - frameQueue[0].timestamp;
         
         if (timeElapsed >= targetDelayMs) {
-            // 描画すべきフレームが見つかった
             frameToDraw = frameQueue.shift().frame; // キューから取り出す
         } else {
-            // フレームが新しすぎる = 待つ
             break;
         }
     }
 
     // 4. 描画
     if (frameToDraw) {
-        ctx.save(); // ミラーリング設定を保存
+        ctx.save(); // 設定を保存
+
+        // ★追加: デバイスの向きと映像の向きをチェック
+        const isDeviceLandscape = window.matchMedia("(orientation: landscape)").matches;
+        const isVideoPortrait = previewVideo.videoHeight > previewVideo.videoWidth;
 
         // ミラーリングが有効かチェック
         if (mirrorToggle.checked) {
-            ctx.translate(delayedCanvas.width, 0);
-            ctx.scale(-1, 1);
+            // ミラーリングは回転と競合するため、横向きの時は無視するか、
+            // 回転後の座標系でミラーリングする必要がある。
+            // ここではシンプルに、ミラーリングはCSS (.mirror-active) に任せ、
+            // JSでの回転時にはミラーリングを適用しない。
+            if (!(isDeviceLandscape && isVideoPortrait)) {
+                 ctx.translate(delayedCanvas.width, 0);
+                 ctx.scale(-1, 1);
+            }
+        }
+
+        // ★修正: 回転処理
+        if (isDeviceLandscape && isVideoPortrait) {
+            // デバイスが横向きで、映像が縦向き (iPhone特有)
+            
+            // キャンバスの中心に移動
+            ctx.translate(delayedCanvas.width / 2, delayedCanvas.height / 2);
+            // 90度回転
+            ctx.rotate(90 * Math.PI / 180);
+            
+            // 回転させたため、描画する画像の幅と高さがキャンバスと逆になる
+            // キャンバスの中心基準で描画
+            ctx.drawImage(frameToDraw, 
+                -delayedCanvas.height / 2, // 新しいX (-h/2)
+                -delayedCanvas.width / 2,  // 新しいY (-w/2)
+                delayedCanvas.height,      // 新しい幅 (h)
+                delayedCanvas.width        // 新しい高さ (w)
+            );
+
+        } else {
+            // 通常の描画 (縦向きデバイス または PC)
+            ctx.drawImage(frameToDraw, 0, 0, delayedCanvas.width, delayedCanvas.height);
         }
         
-        // メインのキャンバスに描画
-        ctx.drawImage(frameToDraw, 0, 0, delayedCanvas.width, delayedCanvas.height);
-        
-        ctx.restore(); // ミラーリング設定を元に戻す
+        ctx.restore(); // 設定を元に戻す
     }
 
-    // 5. 古すぎるフレームの破棄 (遅延を短くした時など)
-    const discardThreshold = targetDelayMs + 2000; // 2秒のバッファ
+    // 5. 古すぎるフレームの破棄
+    const discardThreshold = targetDelayMs + 2000;
     while (frameQueue.length > 0 && (now - frameQueue[0].timestamp) > discardThreshold) {
         frameQueue.shift();
     }
