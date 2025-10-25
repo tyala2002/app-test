@@ -107,77 +107,74 @@ function loadSettings() {
  * CanvasとGridのリサイズ関数
  */
 function resizeElements() {
-    const videoWidth = previewVideo.videoWidth;
-    const videoHeight = previewVideo.videoHeight;
-    const wrapperWidth = videoWrapper.clientWidth;
-    const wrapperHeight = videoWrapper.clientHeight;
+    // CSSの変更が適用されるのを少し待つ
+    setTimeout(() => {
+        const videoWidth = previewVideo.videoWidth;
+        const videoHeight = previewVideo.videoHeight;
+        const wrapperWidth = videoWrapper.clientWidth;
+        const wrapperHeight = videoWrapper.clientHeight;
 
-    if (!videoWidth || !videoHeight || !wrapperWidth || !wrapperHeight || videoWidth === 0 || videoHeight === 0) {
-        return;
-    }
+        if (!videoWidth || !videoHeight || !wrapperWidth || !wrapperHeight || videoWidth === 0 || videoHeight === 0) {
+            return;
+        }
 
-    // ★追加: デバイスの向きと映像の向きをチェック
-    const isDeviceLandscape = window.matchMedia("(orientation: landscape)").matches;
-    const isVideoPortrait = videoHeight > videoWidth;
+        const isDeviceLandscape = window.matchMedia("(orientation: landscape)").matches;
+        const isVideoPortrait = videoHeight > videoWidth;
 
-    let videoW = videoWidth;
-    let videoH = videoHeight;
+        let videoW = videoWidth;
+        let videoH = videoHeight;
 
-    // デバイスが横向きで、映像が縦向き (iPhone特有) の場合、仮想的に回転
-    if (isDeviceLandscape && isVideoPortrait) {
-        [videoW, videoH] = [videoHeight, videoWidth]; // (例: 1920, 1080)
-    }
+        if (isDeviceLandscape && isVideoPortrait) {
+            [videoW, videoH] = [videoHeight, videoWidth];
+        }
 
-    // object-fit: contain の計算
-    const videoRatio = videoW / videoH;
-    const wrapperRatio = wrapperWidth / wrapperHeight;
-    let newWidth, newHeight, top, left;
+        const videoRatio = videoW / videoH;
+        const wrapperRatio = wrapperWidth / wrapperHeight;
+        let newWidth, newHeight, top, left;
 
-    if (videoRatio > wrapperRatio) {
-        newWidth = wrapperWidth;
-        newHeight = newWidth / videoRatio;
-        top = (wrapperHeight - newHeight) / 2;
-        left = 0;
-    } else {
-        newHeight = wrapperHeight;
-        newWidth = newHeight * videoRatio;
-        left = (wrapperWidth - newWidth) / 2;
-        top = 0;
-    }
+        if (videoRatio > wrapperRatio) {
+            newWidth = wrapperWidth;
+            newHeight = newWidth / videoRatio;
+            top = (wrapperHeight - newHeight) / 2;
+            left = 0;
+        } else {
+            newHeight = wrapperHeight;
+            newWidth = newHeight * videoRatio;
+            left = (wrapperWidth - newWidth) / 2;
+            top = 0;
+        }
 
-    // 1. 表示キャンバスのサイズと位置を設定
-    delayedCanvas.width = newWidth; // 描画解像度
-    delayedCanvas.height = newHeight;
-    delayedCanvas.style.width = `${newWidth}px`; // 表示サイズ
-    delayedCanvas.style.height = `${newHeight}px`;
-    delayedCanvas.style.top = `${top}px`;
-    delayedCanvas.style.left = `${left}px`;
-    
-    // 2. グリッドのサイズと位置を設定
-    gridOverlay.style.width = `${newWidth}px`;
-    gridOverlay.style.height = `${newHeight}px`;
-    gridOverlay.style.top = `${top}px`;
-    gridOverlay.style.left = `${left}px`;
+        delayedCanvas.width = newWidth;
+        delayedCanvas.height = newHeight;
+        delayedCanvas.style.width = `${newWidth}px`;
+        delayedCanvas.style.height = `${newHeight}px`;
+        delayedCanvas.style.top = `${top}px`;
+        delayedCanvas.style.left = `${left}px`;
+        
+        gridOverlay.style.width = `${newWidth}px`;
+        gridOverlay.style.height = `${newHeight}px`;
+        gridOverlay.style.top = `${top}px`;
+        gridOverlay.style.left = `${left}px`;
+    }, 100); // 100ms (0.1秒) 待機
 }
 
 // ウィンドウリサイズと回転に対応
 window.addEventListener('resize', resizeElements);
-window.addEventListener('orientationchange', resizeElements);
+// ★★★ 画面回転のイベントリスナー ★★★
+window.addEventListener('orientationchange', resizeElements); 
+// ★★★ これが重要です ★★★
+
 
 // --- 左右反転チェックボックスの処理 ---
 mirrorToggle.addEventListener('change', () => {
-    // CanvasのCSSクラスをトグル（描画には影響しない、CSSでの反転用）
     delayedCanvas.classList.toggle('mirror-active', mirrorToggle.checked);
 });
 
 
 // --- メインの描画ループ ---
 function frameLoop() {
-    // 1. 描画ループを予約
     animationFrameId = requestAnimationFrame(frameLoop);
-
-    // 2. フレームのキャプチャ (非表示ビデオ -> オフスクリーンCanvas)
-    if (previewVideo.readyState >= 3) { // 3 = HAVE_FUTURE_DATA
+    if (previewVideo.readyState >= 3) {
         const captureCanvas = document.createElement('canvas');
         captureCanvas.width = previewVideo.videoWidth;
         captureCanvas.height = previewVideo.videoHeight;
@@ -188,70 +185,43 @@ function frameLoop() {
             timestamp: Date.now()
         });
     }
-
-    // 3. 描画処理
     const now = Date.now();
     const targetDelayMs = parseFloat(delaySecondsInput.value) * 1000;
     let frameToDraw = null;
-
-    // 遅延時間を満たしたフレームを探す
     while (frameQueue.length > 0) {
         const timeElapsed = now - frameQueue[0].timestamp;
-        
         if (timeElapsed >= targetDelayMs) {
-            frameToDraw = frameQueue.shift().frame; // キューから取り出す
+            frameToDraw = frameQueue.shift().frame;
         } else {
             break;
         }
     }
-
-    // 4. 描画
     if (frameToDraw) {
-        ctx.save(); // 設定を保存
-
-        // ★追加: デバイスの向きと映像の向きをチェック
+        ctx.save();
         const isDeviceLandscape = window.matchMedia("(orientation: landscape)").matches;
         const isVideoPortrait = previewVideo.videoHeight > previewVideo.videoWidth;
 
-        // ミラーリングが有効かチェック
         if (mirrorToggle.checked) {
-            // ミラーリングは回転と競合するため、横向きの時は無視するか、
-            // 回転後の座標系でミラーリングする必要がある。
-            // ここではシンプルに、ミラーリングはCSS (.mirror-active) に任せ、
-            // JSでの回転時にはミラーリングを適用しない。
             if (!(isDeviceLandscape && isVideoPortrait)) {
                  ctx.translate(delayedCanvas.width, 0);
                  ctx.scale(-1, 1);
             }
         }
 
-        // ★修正: 回転処理
         if (isDeviceLandscape && isVideoPortrait) {
-            // デバイスが横向きで、映像が縦向き (iPhone特有)
-            
-            // キャンバスの中心に移動
             ctx.translate(delayedCanvas.width / 2, delayedCanvas.height / 2);
-            // 90度回転
             ctx.rotate(90 * Math.PI / 180);
-            
-            // 回転させたため、描画する画像の幅と高さがキャンバスと逆になる
-            // キャンバスの中心基準で描画
             ctx.drawImage(frameToDraw, 
-                -delayedCanvas.height / 2, // 新しいX (-h/2)
-                -delayedCanvas.width / 2,  // 新しいY (-w/2)
-                delayedCanvas.height,      // 新しい幅 (h)
-                delayedCanvas.width        // 新しい高さ (w)
+                -delayedCanvas.height / 2,
+                -delayedCanvas.width / 2,
+                delayedCanvas.height,
+                delayedCanvas.width
             );
-
         } else {
-            // 通常の描画 (縦向きデバイス または PC)
             ctx.drawImage(frameToDraw, 0, 0, delayedCanvas.width, delayedCanvas.height);
         }
-        
-        ctx.restore(); // 設定を元に戻す
+        ctx.restore();
     }
-
-    // 5. 古すぎるフレームの破棄
     const discardThreshold = targetDelayMs + 2000;
     while (frameQueue.length > 0 && (now - frameQueue[0].timestamp) > discardThreshold) {
         frameQueue.shift();
@@ -262,69 +232,52 @@ function frameLoop() {
 // --- 開始ボタンの処理 (iOS対応) ---
 startBtn.onclick = () => {
     
-    // 1. iOSのために、タップ操作と同期して play() を呼ぶ
     previewVideo.play().catch(e => {
         console.warn("Play() (先行呼び出し) に失敗しました (iOSでは想定内):", e);
     });
 
-    // 2. カメラの起動
     navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: false // 音声なし
+        audio: false
     })
     .then(stream => {
-        // --- ▼ カメラ起動成功時 ---
         console.log("カメラ起動成功");
         mediaStream = stream;
         previewVideo.srcObject = stream;
         
-        // ビデオのメタデータが読み込まれたら、リサイズ処理を開始
         previewVideo.addEventListener('loadedmetadata', () => {
             console.log("ビデオ解像度:", previewVideo.videoWidth, "x", previewVideo.videoHeight);
-            resizeElements(); // 最初のサイズ調整
+            resizeElements();
         });
 
-        // 3. UIの制御
         startBtn.textContent = '停止'; 
         startBtn.classList.add('stop-button');
         startBtn.onclick = stopRecording; 
         delaySecondsInput.disabled = true; 
 
-        // 4. メインループの開始
-        frameQueue = []; // キューをリセット
+        frameQueue = [];
         animationFrameId = requestAnimationFrame(frameLoop);
-        // --- ▲ カメラ起動成功時ここまで ---
     })
     .catch(err => {
-        // --- ▼ カメラ起動失敗時 ---
         console.error('エラー:', err);
         alert('カメラの起動に失敗しました。\n(HTTPS接続でないか、カメラへのアクセスを許可しませんでした)\n' + err.message);
         location.reload();
-        // --- ▲ カメラ起動失敗時ここまで ---
     });
 };
 
 
 // --- 停止ボタンの処理 ---
 function stopRecording() {
-    
-    // 1. ループを止める
     if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
     }
-    
-    // 2. カメラを止める
     if (mediaStream) {
         mediaStream.getTracks().forEach(track => track.stop());
     }
-
-    // 3. 設定を保存
     localStorage.setItem(DELAY_STORAGE_KEY, delaySecondsInput.value);
     localStorage.setItem(GRID_COUNT_STORAGE_KEY, gridCountInput.value);
     localStorage.setItem(GRID_TOGGLE_STORAGE_KEY, gridToggle.checked);
     localStorage.setItem(MIRROR_TOGGLE_STORAGE_KEY, mirrorToggle.checked);
-
-    // 4. ページ全体をリロード
     location.reload();
 }
 
