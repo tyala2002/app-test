@@ -42,12 +42,11 @@ if (!mimeType) {
     alert('お使いのブラウザは、録画とストリーミング再生に必要なMIMEタイプに対応していません。');
 }
 
-// --- (スライダー, グリッド, 設定ロード, リサイズ関数は変更なし) ---
-// (省略)
-// --- スライダーの値が表示に反映されるようにする ---
+// --- ▼▼▼ スライダーの値が表示に反映されるようにする ▼▼▼ ---
 delaySecondsInput.addEventListener('input', () => {
     delayValueDisplay.textContent = parseFloat(delaySecondsInput.value).toFixed(1);
 });
+// --- ▲▲▲ ここがスライダーの数値更新処理です ▲▲▲ ---
 
 // --- グリッド関連の処理 ---
 gridToggle.addEventListener('change', () => {
@@ -63,6 +62,9 @@ gridCountInput.addEventListener('input', () => {
     updateGridStyle();
 });
 
+/**
+ * CSSの linear-gradient 文字列を動的に生成する関数
+ */
 function generateGradient(direction, count) {
     let stops = [];
     const step = 100 / (count + 1);
@@ -78,6 +80,9 @@ function generateGradient(direction, count) {
     return `linear-gradient(${direction}, ${stops.join(', ')})`;
 }
 
+/**
+ * グリッド本数の入力に基づき、CSS変数を更新する関数
+ */
 function updateGridStyle() {
     const lineCount = parseInt(gridCountInput.value, 10);
     if (isNaN(lineCount) || lineCount <= 0) {
@@ -91,6 +96,9 @@ function updateGridStyle() {
     gridOverlay.style.setProperty('--grid-lines-h', gradientH);
 }
 
+/**
+ * 設定を読み込む関数
+ */
 function loadSettings() {
     const savedDelay = localStorage.getItem(DELAY_STORAGE_KEY);
     if (savedDelay !== null) {
@@ -114,6 +122,9 @@ function loadSettings() {
     updateGridStyle();
 }
 
+/**
+ * グリッドをリサイズする関数
+ */
 function resizeGridOverlay() {
     const videoWidth = delayedVideo.videoWidth;
     const videoHeight = delayedVideo.videoHeight;
@@ -150,7 +161,7 @@ mirrorToggle.addEventListener('change', () => {
 });
 
 
-// --- ▼▼▼ 修正: 開始ボタンの処理 (async/await を廃止) ▼▼▼ ---
+// --- 開始ボタンの処理 (iOS対応のため .then 形式) ---
 startBtn.onclick = () => {
     
     if (!mimeType) {
@@ -185,7 +196,7 @@ startBtn.onclick = () => {
         audio: true
     })
     .then(stream => {
-        // --- ▼ カメラ起動成功時 (この中は 'await' と同じで、タップ操作の外) ---
+        // --- ▼ カメラ起動成功時 ---
         console.log("カメラ起動成功");
         mediaStream = stream;
 
@@ -213,18 +224,14 @@ startBtn.onclick = () => {
         // --- ▲ カメラ起動失敗時ここまで ---
     });
 
-    // 5. ★最重要★
-    // すべての非同期処理 (getUserMedia, sourceopen) の *前* に、
-    // タップ操作と同期して play() を呼び出す
+    // 5. ★最重要★ (iOS対策)
+    // すべての非同期処理の *前* に、タップ操作と同期して play() を呼び出す
     delayedVideo.play().catch(e => {
         console.warn("Play() (先行呼び出し) に失敗しました (iOSでは想定内):", e);
     });
 };
-// --- ▲▲▲ 修正 ▲▲▲ ---
 
-
-// --- (processQueue, stopRecording, loadSettings は変更なし) ---
-// (省略)
+// --- キューを処理して再生バッファに追加する関数 ---
 async function processQueue() {
     if (!sourceBuffer) {
         return;
@@ -247,12 +254,20 @@ async function processQueue() {
     }
 }
 
+
+// --- 停止ボタンの処理 ---
 function stopRecording() {
+    
+    // リロードする直前に、現在の設定をすべて保存する
     localStorage.setItem(DELAY_STORAGE_KEY, delaySecondsInput.value);
     localStorage.setItem(GRID_COUNT_STORAGE_KEY, gridCountInput.value);
     localStorage.setItem(GRID_TOGGLE_STORAGE_KEY, gridToggle.checked);
     localStorage.setItem(MIRROR_TOGGLE_STORAGE_KEY, mirrorToggle.checked);
+
+    // ページ全体をリロード
     location.reload();
 }
 
+
+// --- ページ読み込み時に設定を読み込む ---
 loadSettings();
