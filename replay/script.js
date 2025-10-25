@@ -23,8 +23,7 @@ let dataQueue = [];
 let delayTimer = null;
 let queueTimer = null;
 
-// --- ▼▼▼ 修正: 録画と再生のMIMEタイプ ▼▼▼ ---
-// MediaRecorder (録画) と MediaSource (再生) の両方がサポートする形式を探す
+// --- 録画と再生のMIMEタイプ ---
 const mimeType = [
     'video/mp4; codecs="avc1.42E01E, mp4a.40.2"',
     'video/mp4; codecs="avc1, mp4a.40.2"',
@@ -34,16 +33,17 @@ const mimeType = [
     'video/webm'
 ].find(type => 
     MediaRecorder.isTypeSupported(type) &&
-    MediaSource.isTypeSupported(type) // ★再生側もサポートしているかチェック
+    MediaSource.isTypeSupported(type)
 );
 
 console.log("選択されたMIMEタイプ:", mimeType);
-// --- ▲▲▲ 修正 ▲▲▲ ---
 
 if (!mimeType) {
     alert('お使いのブラウザは、録画とストリーミング再生に必要なMIMEタイプに対応していません。\n(iPhoneの場合、iOSのバージョンが古いか、MediaSource APIがMP4に対応していない可能性があります)');
 }
 
+// --- (スライダー, グリッド, 設定ロード, リサイズ関数は変更なし) ---
+// (省略)
 // --- スライダーの値が表示に反映されるようにする ---
 delaySecondsInput.addEventListener('input', () => {
     delayValueDisplay.textContent = parseFloat(delaySecondsInput.value).toFixed(1);
@@ -63,13 +63,9 @@ gridCountInput.addEventListener('input', () => {
     updateGridStyle();
 });
 
-/**
- * CSSの linear-gradient 文字列を動的に生成する関数
- */
 function generateGradient(direction, count) {
     let stops = [];
     const step = 100 / (count + 1);
-
     for (let i = 1; i <= count; i++) {
         const pos = (i * step).toFixed(2);
         stops.push(
@@ -82,78 +78,53 @@ function generateGradient(direction, count) {
     return `linear-gradient(${direction}, ${stops.join(', ')})`;
 }
 
-/**
- * グリッド本数の入力に基づき、CSS変数を更新する関数
- */
 function updateGridStyle() {
     const lineCount = parseInt(gridCountInput.value, 10);
-
     if (isNaN(lineCount) || lineCount <= 0) {
         gridOverlay.style.setProperty('--grid-lines-v', 'none');
         gridOverlay.style.setProperty('--grid-lines-h', 'none');
         return;
     }
-
     const gradientV = generateGradient('to right', lineCount);
     const gradientH = generateGradient('to bottom', lineCount);
-    
     gridOverlay.style.setProperty('--grid-lines-v', gradientV);
     gridOverlay.style.setProperty('--grid-lines-h', gradientH);
 }
 
-/**
- * 設定を読み込む関数
- */
 function loadSettings() {
-    // 1. 遅延秒数を読み込む
     const savedDelay = localStorage.getItem(DELAY_STORAGE_KEY);
     if (savedDelay !== null) {
         delaySecondsInput.value = savedDelay;
         delayValueDisplay.textContent = parseFloat(savedDelay).toFixed(1);
     }
-
-    // 2. グリッド本数を読み込む
     const savedGridCount = localStorage.getItem(GRID_COUNT_STORAGE_KEY);
     if (savedGridCount !== null) {
         gridCountInput.value = savedGridCount;
     }
-    
-    // 3. グリッド表示チェックを読み込む
     const savedGridToggle = localStorage.getItem(GRID_TOGGLE_STORAGE_KEY);
     if (savedGridToggle !== null) {
         gridToggle.checked = (savedGridToggle === 'true');
         gridToggle.dispatchEvent(new Event('change'));
     }
-
-    // 4. ミラーリングチェックを読み込む
     const savedMirrorToggle = localStorage.getItem(MIRROR_TOGGLE_STORAGE_KEY);
     if (savedMirrorToggle !== null) {
         mirrorToggle.checked = (savedMirrorToggle === 'true');
         mirrorToggle.dispatchEvent(new Event('change'));
     }
-    
-    // 5. 読み込んだ値でグリッドスタイルを初期化
     updateGridStyle();
 }
 
-/**
- * グリッドをリサイズする関数
- */
 function resizeGridOverlay() {
     const videoWidth = delayedVideo.videoWidth;
     const videoHeight = delayedVideo.videoHeight;
     const wrapperWidth = videoWrapper.clientWidth;
     const wrapperHeight = videoWrapper.clientHeight;
-
     if (!videoWidth || !videoHeight || !wrapperWidth || !wrapperHeight) {
         return;
     }
-
     const videoRatio = videoWidth / videoHeight;
     const wrapperRatio = wrapperWidth / wrapperHeight;
-
     let newWidth, newHeight, top, left;
-
     if (videoRatio > wrapperRatio) {
         newWidth = wrapperWidth;
         newHeight = newWidth / videoRatio;
@@ -165,17 +136,13 @@ function resizeGridOverlay() {
         left = (wrapperWidth - newWidth) / 2;
         top = 0;
     }
-
     gridOverlay.style.width = `${newWidth}px`;
     gridOverlay.style.height = `${newHeight}px`;
     gridOverlay.style.top = `${top}px`;
     gridOverlay.style.left = `${left}px`;
 }
-
-// イベントリスナーを追加
 delayedVideo.addEventListener('resize', resizeGridOverlay);
 window.addEventListener('resize', resizeGridOverlay);
-
 
 // --- 左右反転チェックボックスの処理 ---
 mirrorToggle.addEventListener('change', () => {
@@ -183,22 +150,18 @@ mirrorToggle.addEventListener('change', () => {
 });
 
 
-// --- 開始ボタンの処理 ---
+// --- ▼▼▼ 修正: 開始ボタンの処理 ▼▼▼ ---
 startBtn.onclick = async () => {
     
-    // ★ mimeType が見つからなかったら開始しない
     if (!mimeType) {
         alert('このブラウザでは実行に必要な機能がサポートされていません。');
         return;
     }
 
     try {
-        // 1. カメラ映像の取得
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-        });
-
+        // --- ★ 修正ポイント 1 ---
+        // 最初に MediaSource を準備し、play() を呼ぶ
+        
         // 2. MediaSource (遅延再生側) の準備
         mediaSource = new MediaSource();
         mediaSource.addEventListener('sourceopen', () => {
@@ -210,13 +173,33 @@ startBtn.onclick = async () => {
                 stopRecording();
                 return;
             }
+            
+            // ★ sourceopen 内部でも play() を呼ぶ（2回目）
+            // これが実際に再生を開始する
             delayedVideo.play().catch(e => {
-                console.warn("Play() に失敗しました:", e);
+                console.warn("Play() (sourceopen内) に失敗しました:", e);
             });
+            
             const delayInMs = parseFloat(delaySecondsInput.value) * 1000;
             delayTimer = setTimeout(processQueue, delayInMs);
         }, { once: true });
+        
         delayedVideo.src = URL.createObjectURL(mediaSource);
+
+        // ★★★ await の前に play() を呼ぶ (iOSの制限対策) ★★★
+        // これで "ユーザー操作" として 'play' が許可される (1回目)
+        delayedVideo.play().catch(e => {
+            console.warn("Play() (先行呼び出し) に失敗しました:", e);
+        });
+
+        // --- ★ 修正ポイント 2 ---
+        // play() の後に await getUserMedia() を呼ぶ
+
+        // 1. カメラ映像の取得
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+        });
 
         // 3. MediaRecorder (録画側) の準備
         mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mimeType });
@@ -235,13 +218,15 @@ startBtn.onclick = async () => {
 
     } catch (err) {
         console.error('エラー:', err);
-        // ★ エラー内容をアラートで表示（デバッグ用）
         alert('カメラの起動に失敗しました。\n(HTTPS接続でないか、カメラへのアクセスを許可しませんでした)\n' + err.message);
         location.reload();
     }
 };
+// --- ▲▲▲ 修正 ▲▲▲ ---
 
-// --- キューを処理して再生バッファに追加する関数 ---
+
+// --- (processQueue, stopRecording, loadSettings は変更なし) ---
+// (省略)
 async function processQueue() {
     if (!sourceBuffer) {
         return;
@@ -264,20 +249,12 @@ async function processQueue() {
     }
 }
 
-
-// --- 停止ボタンの処理 ---
 function stopRecording() {
-    
-    // リロードする直前に、現在の設定をすべて保存する
     localStorage.setItem(DELAY_STORAGE_KEY, delaySecondsInput.value);
     localStorage.setItem(GRID_COUNT_STORAGE_KEY, gridCountInput.value);
     localStorage.setItem(GRID_TOGGLE_STORAGE_KEY, gridToggle.checked);
     localStorage.setItem(MIRROR_TOGGLE_STORAGE_KEY, mirrorToggle.checked);
-
-    // ページ全体をリロード
     location.reload();
 }
 
-
-// --- ページ読み込み時に設定を読み込む ---
 loadSettings();
