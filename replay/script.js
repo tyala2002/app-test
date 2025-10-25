@@ -24,7 +24,7 @@ let delayTimer = null;
 let queueTimer = null;
 
 // --- ▼▼▼ 修正: 録画と再生のMIMEタイプ ▼▼▼ ---
-// iPhone (Safari) がサポートする MP4 形式を先頭に追加
+// MediaRecorder (録画) と MediaSource (再生) の両方がサポートする形式を探す
 const mimeType = [
     'video/mp4; codecs="avc1.42E01E, mp4a.40.2"',
     'video/mp4; codecs="avc1, mp4a.40.2"',
@@ -32,13 +32,16 @@ const mimeType = [
     'video/webm; codecs="vp8, opus"',
     'video/webm; codecs=vp8',
     'video/webm'
-].find(type => MediaRecorder.isTypeSupported(type));
+].find(type => 
+    MediaRecorder.isTypeSupported(type) &&
+    MediaSource.isTypeSupported(type) // ★再生側もサポートしているかチェック
+);
 
-console.log("選択されたMIMEタイプ:", mimeType); // デバッグ用にログ出力
+console.log("選択されたMIMEタイプ:", mimeType);
 // --- ▲▲▲ 修正 ▲▲▲ ---
 
 if (!mimeType) {
-    alert('お使いのブラウザはMediaRecorderでサポートされているMIMEタイプに対応していません。');
+    alert('お使いのブラウザは、録画とストリーミング再生に必要なMIMEタイプに対応していません。\n(iPhoneの場合、iOSのバージョンが古いか、MediaSource APIがMP4に対応していない可能性があります)');
 }
 
 // --- スライダーの値が表示に反映されるようにする ---
@@ -182,6 +185,13 @@ mirrorToggle.addEventListener('change', () => {
 
 // --- 開始ボタンの処理 ---
 startBtn.onclick = async () => {
+    
+    // ★ mimeType が見つからなかったら開始しない
+    if (!mimeType) {
+        alert('このブラウザでは実行に必要な機能がサポートされていません。');
+        return;
+    }
+
     try {
         // 1. カメラ映像の取得
         mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -194,7 +204,6 @@ startBtn.onclick = async () => {
         mediaSource.addEventListener('sourceopen', () => {
             if (mediaSource.sourceBuffers.length > 0) return;
             try {
-                // ★ MimeSource.addSourceBuffer にも選択された mimeType を使う
                 sourceBuffer = mediaSource.addSourceBuffer(mimeType);
             } catch (e) {
                 console.error("addSourceBuffer エラー:", e);
@@ -210,7 +219,6 @@ startBtn.onclick = async () => {
         delayedVideo.src = URL.createObjectURL(mediaSource);
 
         // 3. MediaRecorder (録画側) の準備
-        // ★ MediaRecorder にも選択された mimeType を使う
         mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mimeType });
         mediaRecorder.ondataavailable = (event) => {
             if (event.data && event.data.size > 0) {
@@ -227,7 +235,8 @@ startBtn.onclick = async () => {
 
     } catch (err) {
         console.error('エラー:', err);
-        alert('カメラの起動に失敗しました。');
+        // ★ エラー内容をアラートで表示（デバッグ用）
+        alert('カメラの起動に失敗しました。\n(HTTPS接続でないか、カメラへのアクセスを許可しませんでした)\n' + err.message);
         location.reload();
     }
 };
