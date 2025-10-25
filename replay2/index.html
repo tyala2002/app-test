@@ -2,9 +2,11 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Webカメラ遅延アプリ</title>
     <link rel="stylesheet" href="style.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
 
@@ -35,7 +37,8 @@
             <div id="gridOverlay"></div>
 
             <video id="previewVideo" autoplay muted playsinline style="display: none;"></video>
-            </div>
+
+        </div>
     </div>
 
     <script src="script.js"></script>

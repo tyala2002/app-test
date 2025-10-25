@@ -8,7 +8,6 @@ const mirrorToggle = document.getElementById('mirrorToggle');
 const gridCountInput = document.getElementById('gridCount');
 const gridOverlay = document.getElementById('gridOverlay');
 
-// ▼▼▼ 修正 (Canvas API ベースに変更) ▼▼▼
 const previewVideo = document.getElementById('previewVideo');
 const delayedCanvas = document.getElementById('delayedCanvas');
 const ctx = delayedCanvas.getContext('2d');
@@ -16,14 +15,12 @@ const ctx = delayedCanvas.getContext('2d');
 let mediaStream = null;
 let frameQueue = []; // フレームをためるキュー
 let animationFrameId = null; // ループ管理用
-// ▲▲▲ 修正 ▲▲▲
 
-// --- ローカルストレージ用のキー (変更なし) ---
+// --- ローカルストレージ用のキー ---
 const DELAY_STORAGE_KEY = 'delaySecondsValue';
 const GRID_COUNT_STORAGE_KEY = 'gridCountValue';
 const GRID_TOGGLE_STORAGE_KEY = 'gridToggleState';
 const MIRROR_TOGGLE_STORAGE_KEY = 'mirrorToggleState';
-
 
 // --- スライダーの値が表示に反映されるようにする ---
 delaySecondsInput.addEventListener('input', () => {
@@ -33,7 +30,7 @@ delaySecondsInput.addEventListener('input', () => {
 // --- グリッド関連の処理 ---
 gridToggle.addEventListener('change', () => {
     if (gridToggle.checked) {
-        resizeElements(); // ★リサイズ関数呼び出し
+        resizeElements(); // サイズを再計算
         gridOverlay.style.display = 'block';
     } else {
         gridOverlay.style.display = 'none';
@@ -41,7 +38,9 @@ gridToggle.addEventListener('change', () => {
 });
 gridCountInput.addEventListener('input', updateGridStyle);
 
-// (generateGradient 関数は変更なし)
+/**
+ * CSSの linear-gradient 文字列を動的に生成する関数
+ */
 function generateGradient(direction, count) {
     let stops = [];
     const step = 100 / (count + 1);
@@ -57,7 +56,9 @@ function generateGradient(direction, count) {
     return `linear-gradient(${direction}, ${stops.join(', ')})`;
 }
 
-// (updateGridStyle 関数は変更なし)
+/**
+ * グリッド本数の入力に基づき、CSS変数を更新する関数
+ */
 function updateGridStyle() {
     const lineCount = parseInt(gridCountInput.value, 10);
     if (isNaN(lineCount) || lineCount <= 0) {
@@ -71,39 +72,47 @@ function updateGridStyle() {
     gridOverlay.style.setProperty('--grid-lines-h', gradientH);
 }
 
-// (loadSettings 関数は変更なし)
+/**
+ * 設定を読み込む関数
+ */
 function loadSettings() {
+    // 1. 遅延秒数を読み込む
     const savedDelay = localStorage.getItem(DELAY_STORAGE_KEY);
     if (savedDelay !== null) {
         delaySecondsInput.value = savedDelay;
         delayValueDisplay.textContent = parseFloat(savedDelay).toFixed(1);
     }
+    // 2. グリッド本数を読み込む
     const savedGridCount = localStorage.getItem(GRID_COUNT_STORAGE_KEY);
     if (savedGridCount !== null) {
         gridCountInput.value = savedGridCount;
     }
+    // 3. グリッド表示チェックを読み込む
     const savedGridToggle = localStorage.getItem(GRID_TOGGLE_STORAGE_KEY);
     if (savedGridToggle !== null) {
         gridToggle.checked = (savedGridToggle === 'true');
         gridToggle.dispatchEvent(new Event('change'));
     }
+    // 4. ミラーリングチェックを読み込む
     const savedMirrorToggle = localStorage.getItem(MIRROR_TOGGLE_STORAGE_KEY);
     if (savedMirrorToggle !== null) {
         mirrorToggle.checked = (savedMirrorToggle === 'true');
         mirrorToggle.dispatchEvent(new Event('change'));
     }
+    // 5. 読み込んだ値でグリッドスタイルを初期化
     updateGridStyle();
 }
 
-// --- ▼▼▼ 修正: CanvasとGridのリサイズ関数 ▼▼▼ ---
+/**
+ * CanvasとGridのリサイズ関数
+ */
 function resizeElements() {
-    // ソースは非表示の previewVideo
     const videoWidth = previewVideo.videoWidth;
     const videoHeight = previewVideo.videoHeight;
     const wrapperWidth = videoWrapper.clientWidth;
     const wrapperHeight = videoWrapper.clientHeight;
 
-    if (!videoWidth || !videoHeight || !wrapperWidth || !wrapperHeight) {
+    if (!videoWidth || !videoHeight || !wrapperWidth || !wrapperHeight || videoWidth === 0 || videoHeight === 0) {
         return;
     }
 
@@ -138,16 +147,18 @@ function resizeElements() {
     gridOverlay.style.top = `${top}px`;
     gridOverlay.style.left = `${left}px`;
 }
-// ▲▲▲ 修正 ▲▲▲
 
-// --- ▼▼▼ 修正: ミラーリングの対象を Canvas に変更 ▼▼▼ ---
+// ウィンドウリサイズと回転に対応
+window.addEventListener('resize', resizeElements);
+window.addEventListener('orientationchange', resizeElements);
+
+// --- 左右反転チェックボックスの処理 ---
 mirrorToggle.addEventListener('change', () => {
     delayedCanvas.classList.toggle('mirror-active', mirrorToggle.checked);
 });
-// ▲▲▲ 修正 ▲▲▲
 
 
-// --- ▼▼▼ 修正: メインの描画ループ ▼▼▼ ---
+// --- メインの描画ループ ---
 function frameLoop() {
     // 1. 描画ループを予約
     animationFrameId = requestAnimationFrame(frameLoop);
@@ -205,10 +216,9 @@ function frameLoop() {
         frameQueue.shift();
     }
 }
-// ▲▲▲ 修正 ▲▲▲
 
 
-// --- ▼▼▼ 修正: 開始ボタンの処理 (iOS対応) ▼▼▼ ---
+// --- 開始ボタンの処理 (iOS対応) ---
 startBtn.onclick = () => {
     
     // 1. iOSのために、タップ操作と同期して play() を呼ぶ
@@ -219,22 +229,18 @@ startBtn.onclick = () => {
     // 2. カメラの起動
     navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: false // ★音声なし
+        audio: false // 音声なし
     })
     .then(stream => {
         // --- ▼ カメラ起動成功時 ---
         console.log("カメラ起動成功");
         mediaStream = stream;
         previewVideo.srcObject = stream;
-        // play() はすでに呼ばれているので不要
         
         // ビデオのメタデータが読み込まれたら、リサイズ処理を開始
         previewVideo.addEventListener('loadedmetadata', () => {
             console.log("ビデオ解像度:", previewVideo.videoWidth, "x", previewVideo.videoHeight);
             resizeElements(); // 最初のサイズ調整
-            
-            // ★リサイズイベントを追加
-            window.addEventListener('resize', resizeElements);
         });
 
         // 3. UIの制御
@@ -256,10 +262,9 @@ startBtn.onclick = () => {
         // --- ▲ カメラ起動失敗時ここまで ---
     });
 };
-// ▲▲▲ 修正 ▲▲▲
 
 
-// --- ▼▼▼ 修正: 停止ボタンの処理 ▼▼▼ ---
+// --- 停止ボタンの処理 ---
 function stopRecording() {
     
     // 1. ループを止める
@@ -281,7 +286,6 @@ function stopRecording() {
     // 4. ページ全体をリロード
     location.reload();
 }
-// ▲▲▲ 修正 ▲▲▲
 
 
 // --- ページ読み込み時に設定を読み込む ---
