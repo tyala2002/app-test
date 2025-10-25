@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webカメラ遅延アプリ</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="controls">
+        <label for="delaySeconds">遅延: <span id="delayValue">5.0</span> 秒</label>
+        <input type="range" id="delaySeconds" value="5" min="0" max="20" step="0.1">
+        
+        <button id="startBtn">開始</button>
+
+        <div class="grid-control">
+            <input type="checkbox" id="gridToggle">
+            <label for="gridToggle">グリッド表示</label>
+            <label for="gridCount">本数:</label>
+            <input type="number" id="gridCount" value="2" min="1" max="10">
+        </div>
+
+        <div class="mirror-control">
+            <input type="checkbox" id="mirrorToggle">
+            <label for="mirrorToggle">左右反転</label>
+        </div>
+    </div>
+
+    <div class="video-container">
+        <div class="video-wrapper">
+            <video id="delayedVideo" autoplay controls playsinline muted></video>
+            
+            <div id="gridOverlay"></div>
+            </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

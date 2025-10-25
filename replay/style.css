@@ -1,0 +1,198 @@
+/* --- 1. 基本設定 --- */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    /* よりモダンなフォントセットを指定 */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #333;
+}
+
+body {
+    background-color: #f0f2f5; /* 背景色を少し変更 */
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* --- 2. コントロールバー --- */
+.controls {
+    padding: 12px 20px;
+    flex-shrink: 0;
+    background-color: #ffffff; /* バーの背景を白に */
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 15px; /* 要素間の隙間を統一 */
+    /* わずかな影を下に落とす */
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.controls label {
+    font-weight: 500;
+    vertical-align: middle;
+}
+
+/* --- 3. ボタンのスタイル --- */
+.controls button {
+    padding: 8px 16px;
+    cursor: pointer;
+    vertical-align: middle;
+    background-color: #007aff; /* プライマリカラー (青) */
+    color: white;
+    border: none;
+    border-radius: 8px; /* 角丸 */
+    font-weight: 600;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 4px rgba(0,122,255,0.2);
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.controls button:hover {
+    background-color: #0056b3; /* ホバー色 */
+}
+.controls button:active {
+    transform: scale(0.97); /* クリック時に縮む */
+}
+
+/* 停止ボタン用のスタイル (JSでクラスを付与) */
+.controls button.stop-button {
+    background-color: #dc3545; /* 赤色 */
+    box-shadow: 0 2px 4px rgba(220,53,69,0.2);
+}
+.controls button.stop-button:hover {
+    background-color: #a71d2a;
+}
+
+/* --- 4. スライダーのスタイル --- */
+input[type="range"] {
+    -webkit-appearance: none; /* Safari/ChromeのデフォルトUIを消す */
+    appearance: none;
+    width: 200px;
+    height: 20px; /* クリック領域を確保 */
+    background: transparent;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+/* スライダーの「トラック」 (溝) */
+input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+}
+input[type="range"]::-moz-range-track {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+}
+
+/* スライダーの「つまみ」 (円) */
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -6px; /* (トラック高さ8px - つまみ高さ20px) / 2 */
+    height: 20px;
+    width: 20px;
+    background: #007aff;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+}
+input[type="range"]::-moz-range-thumb {
+    height: 18px;
+    width: 18px;
+    background: #007aff;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+}
+
+/* 無効状態のスライダー */
+input[type="range"]:disabled::-webkit-slider-thumb {
+    background: #adb5bd;
+}
+input[type="range"]:disabled::-moz-range-thumb {
+    background: #adb5bd;
+}
+
+/* スライダーの数値表示 */
+#delayValue {
+    display: inline-block;
+    width: 40px;
+    text-align: right;
+    font-weight: 600;
+    color: #007aff; /* 数値をプライマリカラーに */
+}
+
+/* --- 5. チェックボックス・数値入力 --- */
+.grid-control, .mirror-control {
+    margin-left: 15px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px; /* チェックボックスとラベルの隙間 */
+}
+.grid-control label, .mirror-control label {
+    font-weight: normal;
+    cursor: pointer;
+    user-select: none; /* ラベルクリックでテキストが選択されるのを防ぐ */
+}
+
+input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #007aff; /* チェックマークの色をプライマリカラーに */
+}
+
+.grid-control label[for="gridCount"] {
+    font-weight: normal;
+    margin-left: 10px;
+}
+.grid-control input[type="number"] {
+    width: 50px;
+    padding: 4px 8px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+/* --- 6. ビデオ領域 --- */
+.video-container {
+    flex-grow: 1;
+    min-height: 0;
+}
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+}
+video {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background-color: transparent;
+    object-fit: contain;
+    display: block;
+    transition: transform 0.2s ease;
+}
+video.mirror-active {
+    transform: scaleX(-1);
+}
+
+/* --- 7. グリッド --- */
+#gridOverlay {
+    position: absolute;
+    background-image: 
+        var(--grid-lines-v, none),
+        var(--grid-lines-h, none);
+    pointer-events: none;
+    display: none;
+}
