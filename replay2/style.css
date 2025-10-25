@@ -2,7 +2,7 @@
 html, body {
     margin: 0;
     padding: 0;
-    height: 100%; /* ★修正: bodyがこの高さを参照するようにする */
+    height: 100%;
     overflow: hidden; /* ページ全体のスクロールバーを禁止 */
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: #333;
@@ -13,7 +13,7 @@ body {
     background-color: #f0f2f5; /* 背景色 */
     display: flex;
     flex-direction: column;
-    height: 100%; /* ★修正: 100svh -> 100% (親であるhtmlの高さ) */
+    height: 100%; /* 親(html)の高さに合わせる */
 }
 
 /* --- 2. コントロールバー --- */
@@ -164,8 +164,9 @@ input[type="checkbox"] {
 
 /* --- 6. ビデオ/キャンバス領域 --- */
 .video-container {
-    flex-grow: 1; /* 残りの高さいっぱいに広がる */
-    min-height: 0;
+    /* flex-grow: 1; 削除 */
+    /* min-height: 0; 削除 */
+    /* 高さは JS で設定されます */
 }
 .video-wrapper {
     position: relative;

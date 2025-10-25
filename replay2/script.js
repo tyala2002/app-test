@@ -12,6 +12,8 @@ const previewVideo = document.getElementById('previewVideo');
 const delayedCanvas = document.getElementById('delayedCanvas');
 const ctx = delayedCanvas.getContext('2d');
 
+const videoContainer = document.querySelector('.video-container'); // ★コンテナ取得
+
 let mediaStream = null;
 let frameQueue = []; // フレームをためるキュー
 let animationFrameId = null; // ループ管理用
@@ -76,30 +78,26 @@ function updateGridStyle() {
  * 設定を読み込む関数
  */
 function loadSettings() {
-    // 1. 遅延秒数を読み込む
+    // (省略... 変更なし)
     const savedDelay = localStorage.getItem(DELAY_STORAGE_KEY);
     if (savedDelay !== null) {
         delaySecondsInput.value = savedDelay;
         delayValueDisplay.textContent = parseFloat(savedDelay).toFixed(1);
     }
-    // 2. グリッド本数を読み込む
     const savedGridCount = localStorage.getItem(GRID_COUNT_STORAGE_KEY);
     if (savedGridCount !== null) {
         gridCountInput.value = savedGridCount;
     }
-    // 3. グリッド表示チェックを読み込む
     const savedGridToggle = localStorage.getItem(GRID_TOGGLE_STORAGE_KEY);
     if (savedGridToggle !== null) {
         gridToggle.checked = (savedGridToggle === 'true');
         gridToggle.dispatchEvent(new Event('change'));
     }
-    // 4. ミラーリングチェックを読み込む
     const savedMirrorToggle = localStorage.getItem(MIRROR_TOGGLE_STORAGE_KEY);
     if (savedMirrorToggle !== null) {
         mirrorToggle.checked = (savedMirrorToggle === 'true');
         mirrorToggle.dispatchEvent(new Event('change'));
     }
-    // 5. 読み込んだ値でグリッドスタイルを初期化
     updateGridStyle();
 }
 
@@ -107,62 +105,82 @@ function loadSettings() {
  * CanvasとGridのリサイズ関数
  */
 function resizeElements() {
-    // CSSの変更が適用されるのを少し待つ
-    setTimeout(() => {
-        const videoWidth = previewVideo.videoWidth;
-        const videoHeight = previewVideo.videoHeight;
-        const wrapperWidth = videoWrapper.clientWidth;
-        const wrapperHeight = videoWrapper.clientHeight;
+    // ★ visualViewport (実際の表示領域) を使用
+    const vpWidth = window.visualViewport.width;
+    const vpHeight = window.visualViewport.height;
 
-        if (!videoWidth || !videoHeight || !wrapperWidth || !wrapperHeight || videoWidth === 0 || videoHeight === 0) {
-            return;
-        }
+    // ★ コントロールバーの高さを取得
+    const controls = document.querySelector('.controls');
+    const controlsStyle = window.getComputedStyle(controls);
+    const controlsHeight = (controlsStyle.display === 'none') ? 0 : controls.offsetHeight;
 
-        const isDeviceLandscape = window.matchMedia("(orientation: landscape)").matches;
-        const isVideoPortrait = videoHeight > videoWidth;
+    // ★ ビデオコンテナの高さを JS で強制設定
+    const actualContainerHeight = vpHeight - controlsHeight;
+    videoContainer.style.height = `${actualContainerHeight}px`;
 
-        let videoW = videoWidth;
-        let videoH = videoHeight;
+    // 描画領域のサイズ
+    const wrapperWidth = vpWidth;
+    const wrapperHeight = actualContainerHeight;
 
-        if (isDeviceLandscape && isVideoPortrait) {
-            [videoW, videoH] = [videoHeight, videoWidth];
-        }
+    const videoWidth = previewVideo.videoWidth;
+    const videoHeight = previewVideo.videoHeight;
 
-        const videoRatio = videoW / videoH;
-        const wrapperRatio = wrapperWidth / wrapperHeight;
-        let newWidth, newHeight, top, left;
+    if (!videoWidth || !videoHeight || !wrapperWidth || !wrapperHeight || videoWidth === 0 || videoHeight === 0) {
+        return;
+    }
 
-        if (videoRatio > wrapperRatio) {
-            newWidth = wrapperWidth;
-            newHeight = newWidth / videoRatio;
-            top = (wrapperHeight - newHeight) / 2;
-            left = 0;
-        } else {
-            newHeight = wrapperHeight;
-            newWidth = newHeight * videoRatio;
-            left = (wrapperWidth - newWidth) / 2;
-            top = 0;
-        }
+    // デバイスの向きと映像の向きをチェック
+    const isDeviceLandscape = window.matchMedia("(orientation: landscape)").matches;
+    const isVideoPortrait = videoHeight > videoWidth;
 
-        delayedCanvas.width = newWidth;
-        delayedCanvas.height = newHeight;
-        delayedCanvas.style.width = `${newWidth}px`;
-        delayedCanvas.style.height = `${newHeight}px`;
-        delayedCanvas.style.top = `${top}px`;
-        delayedCanvas.style.left = `${left}px`;
-        
-        gridOverlay.style.width = `${newWidth}px`;
-        gridOverlay.style.height = `${newHeight}px`;
-        gridOverlay.style.top = `${top}px`;
-        gridOverlay.style.left = `${left}px`;
-    }, 100); // 100ms (0.1秒) 待機
+    let videoW = videoWidth;
+    let videoH = videoHeight;
+
+    // デバイスが横向きで、映像が縦向き (iPhone特有) の場合、仮想的に回転
+    if (isDeviceLandscape && isVideoPortrait) {
+        [videoW, videoH] = [videoHeight, videoWidth];
+    }
+
+    // object-fit: contain の計算
+    const videoRatio = videoW / videoH;
+    const wrapperRatio = wrapperWidth / wrapperHeight;
+    let newWidth, newHeight, top, left;
+
+    if (videoRatio > wrapperRatio) {
+        newWidth = wrapperWidth;
+        newHeight = newWidth / videoRatio;
+        top = (wrapperHeight - newHeight) / 2;
+        left = 0;
+    } else {
+        newHeight = wrapperHeight;
+        newWidth = newHeight * videoRatio;
+        left = (wrapperWidth - newWidth) / 2;
+        top = 0;
+    }
+
+    // 1. 表示キャンバスのサイズと位置を設定
+    delayedCanvas.width = newWidth; // 描画解像度
+    delayedCanvas.height = newHeight;
+    delayedCanvas.style.width = `${newWidth}px`; // 表示サイズ
+    delayedCanvas.style.height = `${newHeight}px`;
+    delayedCanvas.style.top = `${top}px`;
+    delayedCanvas.style.left = `${left}px`;
+    
+    // 2. グリッドのサイズと位置を設定
+    gridOverlay.style.width = `${newWidth}px`;
+    gridOverlay.style.height = `${newHeight}px`;
+    gridOverlay.style.top = `${top}px`;
+    gridOverlay.style.left = `${left}px`;
 }
 
-// ウィンドウリサイズと回転に対応
-window.addEventListener('resize', resizeElements);
-// ★★★ 画面回転のイベントリスナー ★★★
-window.addEventListener('orientationchange', resizeElements); 
-// ★★★ これが重要です ★★★
+// ★ visualViewport API を使ってリサイズイベントを監視 (iOSに最適)
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', resizeElements);
+} else {
+    // フォールバック
+    window.addEventListener('resize', resizeElements);
+    window.addEventListener('orientationchange', resizeElements);
+}
 
 
 // --- 左右反転チェックボックスの処理 ---
@@ -173,13 +191,13 @@ mirrorToggle.addEventListener('change', () => {
 
 // --- メインの描画ループ ---
 function frameLoop() {
+    // (省略... 変更なし)
     animationFrameId = requestAnimationFrame(frameLoop);
     if (previewVideo.readyState >= 3) {
         const captureCanvas = document.createElement('canvas');
         captureCanvas.width = previewVideo.videoWidth;
         captureCanvas.height = previewVideo.videoHeight;
         captureCanvas.getContext('2d').drawImage(previewVideo, 0, 0);
-        
         frameQueue.push({
             frame: captureCanvas,
             timestamp: Date.now()
@@ -200,14 +218,12 @@ function frameLoop() {
         ctx.save();
         const isDeviceLandscape = window.matchMedia("(orientation: landscape)").matches;
         const isVideoPortrait = previewVideo.videoHeight > previewVideo.videoWidth;
-
         if (mirrorToggle.checked) {
             if (!(isDeviceLandscape && isVideoPortrait)) {
                  ctx.translate(delayedCanvas.width, 0);
                  ctx.scale(-1, 1);
             }
         }
-
         if (isDeviceLandscape && isVideoPortrait) {
             ctx.translate(delayedCanvas.width / 2, delayedCanvas.height / 2);
             ctx.rotate(90 * Math.PI / 180);
@@ -247,7 +263,8 @@ startBtn.onclick = () => {
         
         previewVideo.addEventListener('loadedmetadata', () => {
             console.log("ビデオ解像度:", previewVideo.videoWidth, "x", previewVideo.videoHeight);
-            resizeElements();
+            resizeElements(); // 最初のサイズ調整
+            setTimeout(resizeElements, 100); // Safariがビューポートを更新するのを待つ
         });
 
         startBtn.textContent = '停止'; 
@@ -268,6 +285,7 @@ startBtn.onclick = () => {
 
 // --- 停止ボタンの処理 ---
 function stopRecording() {
+    // (省略... 変更なし)
     if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
     }
