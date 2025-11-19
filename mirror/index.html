@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>Kyudo Mirror</title>
+  <script type="module" crossorigin src="/assets/index-B7CI-9LB.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-yu5YKK7Y.css">
+</head>
+
+<body>
+  <div id="app">
+    <div id="video-container">
+      <video id="mirror-video" autoplay playsinline muted></video>
+      <div id="guidelines" class="hidden">
+        <div class="line-vertical"></div>
+        <div class="line-horizontal"></div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="button-group">
+        <button id="btn-mirror" class="active">Mirror: ON</button>
+        <button id="btn-guide">Guide: OFF</button>
+      </div>
+      <div class="slider-container">
+        <label for="delay-slider">Delay: <span id="delay-value">5.0</span>s</label>
+        <input type="range" id="delay-slider" min="0" max="10" step="0.1" value="5.0">
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
